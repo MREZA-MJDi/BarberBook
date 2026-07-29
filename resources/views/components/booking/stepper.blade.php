@@ -1,133 +1,91 @@
-<div class="w-full py-10 bg-zinc-950" dir="rtl">
+<div class="w-full py-16 bg-background" dir="rtl">
 
-    <div class="max-w-3xl px-6 mx-auto">
-
+    <div class="max-w-5xl mx-auto px-6">
 
         <div class="flex items-center justify-between">
 
-
-            {{-- Step 1 Active --}}
-            <div class="flex flex-col items-center">
+            {{-- Step --}}
+            <div class="flex flex-col items-center relative z-10">
 
                 <div
-                    class="flex items-center justify-center w-11 h-11 text-sm font-black text-black bg-white rounded-full shadow-lg">
+                    class="w-16 h-16 rounded-full bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 transition-all duration-300">
 
-                    1
+                    ✂️
 
                 </div>
 
+                <span class="mt-4 font-bold text-text">
 
-                <span class="mt-3 text-sm font-bold text-white">
-
-                    انتخاب خدمت
+                    انتخاب مدل
 
                 </span>
 
-
             </div>
 
+            <div
+                class="flex-1 h-1 rounded-full mx-3 bg-gradient-to-l from-primary to-border">
+            </div>
 
-
-
-
-            {{-- Line --}}
-            <div class="flex-1 h-px mx-3 bg-zinc-700"></div>
-
-
-
-
-
-            {{-- Step 2 --}}
-            <div class="flex flex-col items-center">
-
+            {{-- Step --}}
+            <div class="flex flex-col items-center relative z-10">
 
                 <div
-                    class="flex items-center justify-center w-11 h-11 text-sm font-bold rounded-full bg-zinc-800 text-zinc-400">
+                    class="w-14 h-14 rounded-full border-2 border-border bg-surface text-muted flex items-center justify-center transition-all">
 
-                    2
+                    📅
 
                 </div>
 
+                <span class="mt-4 text-muted">
 
-                <span class="mt-3 text-sm text-zinc-500">
-
-                    انتخاب تاریخ
+                    تاریخ
 
                 </span>
 
-
             </div>
 
+            <div class="flex-1 h-px bg-border mx-3"></div>
 
-
-
-
-            {{-- Line --}}
-            <div class="flex-1 h-px mx-3 bg-zinc-700"></div>
-
-
-
-
-
-            {{-- Step 3 --}}
-            <div class="flex flex-col items-center">
-
+            {{-- Step --}}
+            <div class="flex flex-col items-center relative z-10">
 
                 <div
-                    class="flex items-center justify-center w-11 h-11 text-sm font-bold rounded-full bg-zinc-800 text-zinc-400">
+                    class="w-14 h-14 rounded-full border-2 border-border bg-surface text-muted flex items-center justify-center">
 
-                    3
+                    🕒
 
                 </div>
 
+                <span class="mt-4 text-muted">
 
-                <span class="mt-3 text-sm text-zinc-500">
-
-                    انتخاب ساعت
+                    ساعت
 
                 </span>
 
-
             </div>
 
+            <div class="flex-1 h-px bg-border mx-3"></div>
 
-
-
-
-            {{-- Line --}}
-            <div class="flex-1 h-px mx-3 bg-zinc-700"></div>
-
-
-
-
-
-            {{-- Step 4 --}}
-            <div class="flex flex-col items-center">
-
+            {{-- Step --}}
+            <div class="flex flex-col items-center relative z-10">
 
                 <div
-                    class="flex items-center justify-center w-11 h-11 text-sm font-bold rounded-full bg-zinc-800 text-zinc-400">
+                    class="w-14 h-14 rounded-full border-2 border-border bg-surface text-muted flex items-center justify-center">
 
-                    4
+                    ✓
 
                 </div>
 
+                <span class="mt-4 text-muted">
 
-                <span class="mt-3 text-sm text-zinc-500">
-
-                    ثبت درخواست
+                    تایید
 
                 </span>
 
-
             </div>
-
-
 
         </div>
 
-
     </div>
-
 
 </div>

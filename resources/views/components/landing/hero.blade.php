@@ -67,7 +67,7 @@
 
 
             <h1
-                class="text-4xl font-black leading-relaxed text-zinc-900 dark:text-white lg:text-6xl">
+                class="text-4xl font-black leading-relaxed text-stone-900 dark:text-white lg:text-6xl">
 
 
                 آرایشگاه
@@ -106,7 +106,7 @@
 
 
                 <a href="#booking"
-                   class="px-8 py-4 text-center font-bold text-white transition bg-zinc-900 rounded-2xl hover:bg-zinc-800 dark:bg-white dark:text-black">
+                   class="px-8 py-4 text-center font-bold text-white transition bg-emerald-800  hover:bg-zinc-800 rounded-2xl hover:bg-emerald-900 dark:bg-white dark:text-black">
 
                     رزرو نوبت
 

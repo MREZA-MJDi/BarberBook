@@ -1,131 +1,95 @@
-<div
-    class="
-    overflow-hidden
-    border
-    bg-zinc-900
-    border-zinc-800
-    rounded-3xl
-    group
-    "
-    dir="rtl"
->
+<div class="group overflow-hidden rounded-[32px] border border-border bg-surface transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_25px_50px_rgba(0,0,0,.08)]">
 
-
-    {{-- Image --}}
-    <div class="relative h-80 overflow-hidden">
-
+    <div class="relative overflow-hidden h-72">
 
         <img
-            src="{{ asset('images/avatar4.avif') }}"
-            alt="barber"
-            class="
-            object-cover
-            w-full
-            h-full
-            transition
-            duration-700
-            group-hover:scale-110
-            ">
+            src="{{ asset('images/Modern-Barbershop-interior-design.png') }}"
+            class="h-full w-full object-cover transition duration-700 group-hover:scale-110"
+            alt="">
 
+        <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
 
+        <span
+            class="absolute top-5 right-5 rounded-full bg-white/90 backdrop-blur px-4 py-2 text-xs font-bold text-primary">
 
-        {{-- Overlay --}}
-        <div
-            class="
-            absolute
-            inset-0
-            bg-gradient-to-t
-            from-zinc-950
-            via-transparent
-            to-transparent
-            ">
-        </div>
+            محبوب‌ترین
 
+        </span>
 
     </div>
 
+    <div class="p-7">
 
-
-
-
-    {{-- Content --}}
-    <div class="p-6">
-
-
-        <h3
-            class="
-            text-2xl
-            font-black
-            text-white
-            ">
-
-            علی مجیدی
-
-        </h3>
-
-
-
-        <p class="mt-2 text-sm text-zinc-400">
-
-            Senior Barber
-
-        </p>
-
-
-
-
-        <div
-            class="
-            flex
-            items-center
-            justify-between
-            mt-6
-            ">
-
+        <div class="flex justify-between items-start">
 
             <div>
 
+                <h3 class="text-2xl font-black text-text">
 
-                <span class="block text-xs text-zinc-500">
+                    اصلاح کلاسیک
 
-                    تجربه
+                </h3>
 
-                </span>
+                <p class="mt-2 text-muted">
 
+                    اصلاح حرفه‌ای همراه با شستشو و استایل
 
-                <strong class="text-white">
-
-                    ۸ سال
-
-                </strong>
-
+                </p>
 
             </div>
 
+            <span
+                class="rounded-xl bg-primary/10 px-3 py-2 text-xs font-bold text-primary">
 
+                ۴۵ دقیقه
 
-            <div
-                class="
-                px-4
-                py-2
-                text-xs
-                font-bold
-                text-black
-                bg-white
-                rounded-xl
-                ">
-
-                فعال
-
-            </div>
-
-
+            </span>
 
         </div>
 
+        <div class="mt-6 flex flex-wrap gap-2">
+
+            <span class="rounded-full bg-background px-3 py-2 text-xs text-muted">
+                ✂ اصلاح
+            </span>
+
+            <span class="rounded-full bg-background px-3 py-2 text-xs text-muted">
+                💈 استایل
+            </span>
+
+            <span class="rounded-full bg-background px-3 py-2 text-xs text-muted">
+                🧴 شستشو
+            </span>
+
+        </div>
+
+        <div class="mt-8 flex items-center justify-between">
+
+            <div>
+
+                <div class="text-sm text-muted">
+
+                    شروع از
+
+                </div>
+
+                <div class="mt-1 text-2xl font-black text-secondary">
+
+                    ۲۵۰ هزار تومان
+
+                </div>
+
+            </div>
+
+            <button
+                class="rounded-2xl bg-primary px-6 py-3 font-bold text-white transition hover:bg-primary-hover">
+
+                رزرو
+
+            </button>
+
+        </div>
 
     </div>
-
-
 
 </div>

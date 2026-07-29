@@ -1,13 +1,33 @@
+
 @import "./fonts.css";
 @import "tailwindcss";
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@theme {
-    --font-vazir: "Vazirmatn", sans-serif;
-}
 
+@theme {
+
+    --font-vazir: "Vazirmatn", sans-serif;
+
+    /* Base */
+    --color-background: #F5F1EA;
+    --color-surface: #FFFCF8;
+
+    /* Brand */
+    --color-primary: #5B6F5F;
+    --color-primary-hover: #4E6252;
+
+    --color-secondary: #7A6652;
+    --color-secondary-hover: #665341;
+
+    /* Text */
+    --color-text: #2F2C28;
+    --color-muted: #746E68;
+
+    /* Border */
+    --color-border: #DDD4C8;
+}
 html {
     direction: rtl;
     scroll-behavior: smooth;
@@ -15,8 +35,22 @@ html {
 
 body {
     font-family: var(--font-vazir);
-    background: #09090b;
-    color: #fafafa;
+    background: var(--color-background);
+    color: var(--color-text);
+}
+
+@keyframes floating {
+    0% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-12px);
+    }
+
+    100% {
+        transform: translateY(0);
+    }
 }
 @keyframes floating {
     0% {

@@ -1,229 +1,134 @@
-<section class="relative py-24 overflow-hidden bg-zinc-950" dir="rtl">
+<div
+    class="group overflow-hidden rounded-[32px] border border-border bg-surface transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_25px_60px_rgba(0,0,0,.10)]">
 
-    <div class="container px-6 mx-auto">
+    {{-- Image --}}
+    <div class="relative overflow-hidden h-80">
 
+        <img
+            src="{{ asset('images/model1.jpg') }}"
+            alt="French Crop"
+            class="h-full w-full object-contain transition duration-700 group-hover:scale-110">
 
-        {{-- Title --}}
-        <div class="max-w-3xl mx-auto text-center">
+        {{-- Overlay --}}
+        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
 
-            <h2 class="text-3xl font-black text-white md:text-4xl">
+        {{-- Rank --}}
+        <div
+            class="absolute top-5 right-5 rounded-full bg-white/90 px-4 py-2 text-xs font-bold text-secondary backdrop-blur">
 
-                نظر مشتریان
-                <span class="text-zinc-300">
-                    آلیجناب
-                </span>
-
-            </h2>
-
-
-            <p class="mt-5 leading-8 text-zinc-400">
-
-                تجربه کسانی که کیفیت خدمات ما را امتحان کرده‌اند.
-
-            </p>
-
+            🥇 ترند شماره ۱
 
         </div>
 
-
-
-
-
-        {{-- Reviews --}}
-        <div class="grid gap-8 mt-14 md:grid-cols-2 lg:grid-cols-3">
-
-
-
-            {{-- Review Card --}}
-            <div
-                class="p-8 transition duration-500 border bg-zinc-900 border-zinc-800 rounded-3xl hover:-translate-y-2">
-
-
-                {{-- Stars --}}
-                <div class="flex gap-1 mb-5 text-white">
-
-                    ★★★★★
-
-                </div>
-
-
-
-                <p class="leading-8 text-zinc-400">
-
-
-                    بهترین تجربه‌ای بود که از اصلاح داشتم.
-                    برخورد عالی و دقت در جزئیات واقعاً متفاوت بود.
-
-
-                </p>
-
-
-
-                <div class="flex items-center mt-8">
-
-
-                    <img
-                        class="object-cover w-14 h-14 rounded-full"
-                        src="{{ asset('images/user-1.jpg') }}"
-                        alt="customer">
-
-
-
-                    <div class="mr-4">
-
-
-                        <h3 class="font-bold text-white">
-
-                            محمد رضایی
-
-                        </h3>
-
-
-                        <span class="text-sm text-zinc-500">
-
-                            مشتری VIP
-
-                        </span>
-
-
-                    </div>
-
-
-                </div>
-
-
-            </div>
-
-
-
-
-
-            {{-- Review Card --}}
-            <div
-                class="p-8 transition duration-500 border bg-zinc-900 border-zinc-800 rounded-3xl hover:-translate-y-2">
-
-
-                <div class="flex gap-1 mb-5 text-white">
-
-                    ★★★★★
-
-                </div>
-
-
-
-                <p class="leading-8 text-zinc-400">
-
-
-                    محیط بسیار آرام و حرفه‌ای.
-                    مدل مو دقیقاً همونی شد که می‌خواستم.
-
-
-                </p>
-
-
-
-                <div class="flex items-center mt-8">
-
-
-                    <img
-                        class="object-cover w-14 h-14 rounded-full"
-                        src="{{ asset('images/user-2.jpg') }}"
-                        alt="customer">
-
-
-                    <div class="mr-4">
-
-                        <h3 class="font-bold text-white">
-
-                            علی احمدی
-
-                        </h3>
-
-
-                        <span class="text-sm text-zinc-500">
-
-                            مشتری ثابت
-
-                        </span>
-
-
-                    </div>
-
-
-                </div>
-
-
-            </div>
-
-
-
-
-
-            {{-- Review Card --}}
-            <div
-                class="p-8 transition duration-500 border bg-zinc-900 border-zinc-800 rounded-3xl hover:-translate-y-2">
-
-
-                <div class="flex gap-1 mb-5 text-white">
-
-                    ★★★★★
-
-                </div>
-
-
-
-                <p class="leading-8 text-zinc-400">
-
-
-                    از کیفیت کار و رفتار پرسنل کاملاً راضی بودم.
-                    قطعاً دوباره مراجعه می‌کنم.
-
-
-                </p>
-
-
-
-                <div class="flex items-center mt-8">
-
-
-                    <img
-                        class="object-cover w-14 h-14 rounded-full"
-                        src="{{ asset('images/user-3.jpg') }}"
-                        alt="customer">
-
-
-
-                    <div class="mr-4">
-
-
-                        <h3 class="font-bold text-white">
-
-                            امیر حسینی
-
-                        </h3>
-
-
-                        <span class="text-sm text-zinc-500">
-
-                            مشتری
-
-                        </span>
-
-
-                    </div>
-
-
-                </div>
-
-
-            </div>
-
-
+        {{-- Rating --}}
+        <div
+            class="absolute bottom-5 left-5 rounded-full bg-black/50 px-4 py-2 text-sm text-white backdrop-blur">
+
+            ⭐ 4.9
+            <span class="text-white/70">
+                (۲۳۴ نظر)
+            </span>
 
         </div>
-
 
     </div>
 
+    {{-- Body --}}
+    <div class="p-7">
 
-</section>
+        <h3 class="text-2xl font-black text-text">
+
+            French Crop
+
+        </h3>
+
+        <p class="mt-2 leading-7 text-muted">
+
+            یکی از محبوب‌ترین مدل‌های سال ۲۰۲۶ با حجم طبیعی و فید حرفه‌ای.
+
+        </p>
+
+        {{-- Stats --}}
+        <div class="mt-6 grid grid-cols-3 gap-3">
+
+            <div class="rounded-2xl bg-background p-3 text-center">
+
+                <div class="text-lg font-black text-secondary">
+
+                    🔥 ۱۲۶
+
+                </div>
+
+                <div class="mt-1 text-xs text-muted">
+
+                    رزرو
+
+                </div>
+
+            </div>
+
+            <div class="rounded-2xl bg-background p-3 text-center">
+
+                <div class="text-lg font-black text-secondary">
+
+                    ⏱ ۴۵
+
+                </div>
+
+                <div class="mt-1 text-xs text-muted">
+
+                    دقیقه
+
+                </div>
+
+            </div>
+
+            <div class="rounded-2xl bg-background p-3 text-center">
+
+                <div class="text-lg font-black text-secondary">
+
+                    💬 ۲۳۴
+
+                </div>
+
+                <div class="mt-1 text-xs text-muted">
+
+                    نظر
+
+                </div>
+
+            </div>
+
+        </div>
+
+        {{-- Footer --}}
+        <div class="mt-8 flex items-center justify-between">
+
+            <div>
+
+                <p class="text-sm text-muted">
+
+                    شروع از
+
+                </p>
+
+                <p class="mt-1 text-2xl font-black text-secondary">
+
+                    ۲۵۰ هزار تومان
+
+                </p>
+
+            </div>
+
+            <button
+                class="rounded-2xl bg-primary px-6 py-3 font-bold text-white transition-all duration-300 hover:scale-105 hover:bg-primary-hover">
+
+                انتخاب این مدل
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>

@@ -1,78 +1,95 @@
-<div
-    class="overflow-hidden transition duration-500 border bg-zinc-900 border-zinc-800 rounded-3xl shadow-xl hover:-translate-y-2 hover:shadow-2xl"
-    dir="rtl">
+<div class="group overflow-hidden rounded-[32px] border border-border bg-surface transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_25px_50px_rgba(0,0,0,.08)]">
 
-
-    {{-- Image --}}
-    <div class="overflow-hidden h-52">
+    <div class="relative overflow-hidden h-72">
 
         <img
-            class="object-cover w-full h-full transition duration-700 hover:scale-110"
-            src="{{ asset('images/service-1.jpg') }}"
-            alt="اصلاح کلاسیک">
+            src="{{ asset('images/service-3.jpg') }}"
+            class="h-full w-full object-cover transition duration-700 group-hover:scale-110"
+            alt="">
+
+        <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+
+        <span
+            class="absolute top-5 right-5 rounded-full bg-white/90 backdrop-blur px-4 py-2 text-xs font-bold text-primary">
+
+            محبوب‌ترین
+
+        </span>
 
     </div>
 
+    <div class="p-7">
 
+        <div class="flex justify-between items-start">
 
-    {{-- Content --}}
-    <div class="px-6 py-6">
+            <div>
 
+                <h3 class="text-2xl font-black text-text">
 
-        <h2 class="text-xl font-black text-white">
+                    اصلاح کلاسیک
 
-            اصلاح کلاسیک
+                </h3>
 
-        </h2>
+                <p class="mt-2 text-muted">
 
+                    اصلاح حرفه‌ای همراه با شستشو و استایل
 
-        <p class="mt-3 text-sm leading-7 text-zinc-400">
+                </p>
 
-            اصلاح حرفه‌ای مو با فرم‌دهی دقیق و متناسب
-            با استایل شما.
+            </div>
 
-        </p>
+            <span
+                class="rounded-xl bg-primary/10 px-3 py-2 text-xs font-bold text-primary">
 
-
-    </div>
-
-
-
-    {{-- Footer --}}
-    <div
-        class="flex items-center justify-between px-6 py-5 bg-black">
-
-
-        <div>
-
-
-            <p class="text-xs text-zinc-500">
-
-                قیمت
-
-            </p>
-
-
-            <span class="text-lg font-bold text-white">
-
-                250 هزار تومان
+                ۴۵ دقیقه
 
             </span>
 
+        </div>
+
+        <div class="mt-6 flex flex-wrap gap-2">
+
+            <span class="rounded-full bg-background px-3 py-2 text-xs text-muted">
+                ✂ اصلاح
+            </span>
+
+            <span class="rounded-full bg-background px-3 py-2 text-xs text-muted">
+                💈 استایل
+            </span>
+
+            <span class="rounded-full bg-background px-3 py-2 text-xs text-muted">
+                🧴 شستشو
+            </span>
 
         </div>
 
+        <div class="mt-8 flex items-center justify-between">
 
+            <div>
 
-        <button
-            class="px-5 py-2.5 text-sm font-bold text-black transition bg-white rounded-xl hover:bg-zinc-200">
+                <div class="text-sm text-muted">
 
-            رزرو
+                    شروع از
 
-        </button>
+                </div>
 
+                <div class="mt-1 text-2xl font-black text-secondary">
+
+                    ۲۵۰ هزار تومان
+
+                </div>
+
+            </div>
+
+            <button
+                class="rounded-2xl bg-primary px-6 py-3 font-bold text-white transition hover:bg-primary-hover">
+
+                رزرو
+
+            </button>
+
+        </div>
 
     </div>
-
 
 </div>

@@ -1,90 +1,137 @@
-<section class="bg-background" dir="rtl">
-    <div class="container px-6 py-20 mx-auto">
+<section id="gallery" class="py-20 bg-background" dir="rtl">
 
-        {{-- Title --}}
-        <div class="text-center">
+    <div class="max-w-7xl px-5 mx-auto">
 
-            <h2 class="text-3xl font-black text-text md:text-4xl">
-                نمونه‌کارهای
-                <span class="text-primary">
-                    آرایشگاه آلیجناب
+        {{-- Header --}}
+        <div class="flex items-end justify-between">
+
+            <div>
+
+                <span class="text-sm font-bold tracking-widest uppercase text-primary">
+
+                    Gallery
+
                 </span>
-            </h2>
 
-            <p class="max-w-2xl mx-auto mt-5 leading-8 text-muted">
-                جدیدترین مدل‌های اصلاح، استایل مو و خدمات تخصصی
-                که توسط علی مجیدی انجام شده است.
-            </p>
+                <h2 class="mt-2 text-3xl font-black text-text lg:text-4xl">
+
+                    آخرین نمونه‌کارها
+
+                </h2>
+
+                <p class="mt-3 max-w-xl leading-8 text-muted">
+
+                    چند نمونه از اصلاح‌ها و استایل‌هایی که اخیراً در آرایشگاه انجام شده است.
+
+                </p>
+
+            </div>
 
         </div>
 
         {{-- Gallery --}}
-        <div class="grid grid-cols-1 gap-8 mt-12 md:grid-cols-2 xl:grid-cols-3">
+        <div
+            class="flex gap-5 mt-10 overflow-x-auto snap-x snap-mandatory pb-2">
 
             {{-- Card 1 --}}
-            <div class="relative overflow-hidden border shadow-lg h-[420px] rounded-3xl border-border bg-surface group">
+            <div
+                class="group relative min-w-[260px] h-[420px] overflow-hidden rounded-[30px] snap-start">
 
                 <img
                     src="{{ asset('images/work-1.jpg') }}"
-                    class="object-cover w-full h-full transition duration-700 group-hover:scale-110"
-                    alt="اصلاح کلاسیک">
+                    class="object-cover w-full h-full transition duration-500 group-hover:scale-110"
+                    alt="">
 
                 <div
-                    class="absolute inset-0 flex flex-col justify-end p-8 transition duration-500 opacity-0 bg-gradient-to-t from-primary/90 via-primary/30 to-transparent group-hover:opacity-100">
+                    class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
 
-                    <h3 class="text-xl font-bold text-white">
-                        اصلاح کلاسیک
-                    </h3>
+                <div
+                    class="absolute bottom-5 right-5 left-5">
 
-                    <p class="mt-2 text-sm text-white/80">
-                        مدل مو
-                    </p>
+                    <span
+                        class="rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white backdrop-blur">
+
+                        French Crop
+
+                    </span>
 
                 </div>
 
             </div>
 
             {{-- Card 2 --}}
-            <div class="relative overflow-hidden border shadow-lg h-[420px] rounded-3xl border-border bg-surface group">
+            <div
+                class="group relative min-w-[220px] h-[320px] mt-12 overflow-hidden rounded-[26px] snap-start">
 
                 <img
-                    src="{{ asset('images/work-3.jpg') }}"
-                    class="object-cover w-full h-full transition duration-700 group-hover:scale-110"
-                    alt="استایل مدرن">
+                    src="{{ asset('images/work-2.jpg') }}"
+                    class="object-cover w-full h-full transition duration-500 group-hover:scale-110"
+                    alt="">
 
                 <div
-                    class="absolute inset-0 flex flex-col justify-end p-8 transition duration-500 opacity-0 bg-gradient-to-t from-secondary/90 via-secondary/30 to-transparent group-hover:opacity-100">
+                    class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
 
-                    <h3 class="text-xl font-bold text-white">
-                        استایل مدرن
-                    </h3>
+                <div
+                    class="absolute bottom-5 right-5">
 
-                    <p class="mt-2 text-sm text-white/80">
-                        کوتاهی و فرم‌دهی
-                    </p>
+                    <span
+                        class="rounded-full bg-primary px-3 py-2 text-xs font-bold text-white">
+
+                        Fade
+
+                    </span>
 
                 </div>
 
             </div>
 
             {{-- Card 3 --}}
-            <div class="relative overflow-hidden border shadow-lg h-[420px] rounded-3xl border-border bg-surface group">
+            <div
+                class="group relative min-w-[300px] h-[480px] overflow-hidden rounded-[34px] snap-start">
 
                 <img
-                    src="{{ asset('images/work-2.jpg') }}"
-                    class="object-cover w-full h-full transition duration-700 group-hover:scale-110"
-                    alt="مدل داماد">
+                    src="{{ asset('images/work-3.jpg') }}"
+                    class="object-cover w-full h-full transition duration-500 group-hover:scale-110"
+                    alt="">
 
                 <div
-                    class="absolute inset-0 flex flex-col justify-end p-8 transition duration-500 opacity-0 bg-gradient-to-t from-primary/90 via-secondary/20 to-transparent group-hover:opacity-100">
+                    class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
 
-                    <h3 class="text-xl font-bold text-white">
-                        مدل ویژه داماد
-                    </h3>
+                <div
+                    class="absolute bottom-5 right-5">
 
-                    <p class="mt-2 text-sm text-white/80">
-                        خدمات VIP
-                    </p>
+                    <span
+                        class="rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white backdrop-blur">
+
+                        Buzz Cut
+
+                    </span>
+
+                </div>
+
+            </div>
+
+            {{-- Card 4 --}}
+            <div
+                class="group relative min-w-[240px] h-[360px] mt-20 overflow-hidden rounded-[28px] snap-start">
+
+                <img
+                    src="{{ asset('images/Modern-Barbershop-interior-design.png') }}"
+                    class="object-cover w-full h-full transition duration-500 group-hover:scale-110"
+                    alt="">
+
+                <div
+                    class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+
+                <div
+                    class="absolute bottom-5 right-5">
+
+                    <span
+                        class="rounded-full bg-primary px-4 py-2 text-sm font-bold text-white">
+
+                        Modern
+
+                    </span>
 
                 </div>
 
@@ -93,4 +140,5 @@
         </div>
 
     </div>
+
 </section>

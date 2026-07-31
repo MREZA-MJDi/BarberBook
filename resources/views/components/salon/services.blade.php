@@ -1,66 +1,40 @@
-<div class="overflow-hidden transition-all duration-500 rounded-[28px] bg-surface border border-border hover:-translate-y-2 hover:shadow-xl group">
+<div
+    class="group cursor-pointer rounded-[26px] border border-border bg-surface p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary hover:bg-primary/5">
 
-    {{-- Image --}}
-    <div class="relative overflow-hidden h-80">
+    <div
+        class="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-3xl">
 
-        <img
-            src="{{ asset('images/service-1.jpg') }}"
-            class="object-cover w-full h-full transition duration-700 group-hover:scale-105"
-            alt="">
-
-        {{-- Badge --}}
-        <span
-            class="absolute top-5 right-5 rounded-full border border-primary/20 bg-white/90 px-4 py-2 text-xs font-bold text-primary backdrop-blur">
-
-            محبوب
-
-        </span>
+        ✂️
 
     </div>
 
-    {{-- Body --}}
-    <div class="p-7">
+    <h3 class="mt-6 text-xl font-black text-text">
 
-        <h3 class="text-2xl font-black text-text">
+        اصلاح کلاسیک
 
-            اصلاح کلاسیک
+    </h3>
 
-        </h3>
+    <p class="mt-3 text-sm leading-7 text-muted">
 
-        <p class="mt-3 leading-8 text-muted">
+        اصلاح و فرم‌دهی مو با استایل دلخواه.
 
-            اصلاح حرفه‌ای همراه با شستشو، استایل و فرم‌دهی نهایی.
+    </p>
 
-        </p>
+    <div
+        class="mt-6 flex items-center justify-between border-t border-border pt-5">
 
-        <div class="my-6 h-px bg-border"></div>
+        <span class="text-sm text-muted">
 
-        <div class="flex items-center justify-between">
+            حدود ۳۰ دقیقه
 
-            <div>
+        </span>
 
-                <p class="text-sm text-muted">
+        <span
+            class="rounded-full bg-primary/10 px-3 py-1 text-sm font-bold text-primary">
 
-                    شروع از
+            انتخاب
 
-                </p>
-
-                <p class="mt-1 text-xl font-black text-secondary">
-
-                    ۲۵۰ هزار تومان
-
-                </p>
-
-            </div>
-
-            <button
-                class="rounded-2xl border border-border bg-background px-6 py-3 font-bold text-text transition-all duration-300 hover:border-primary hover:bg-primary hover:text-white">
-
-                رزرو
-
-            </button>
-
-        </div>
+        </span>
 
     </div>
 

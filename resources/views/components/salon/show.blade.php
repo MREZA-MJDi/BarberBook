@@ -4,8 +4,7 @@
 
     <div
         class="relative overflow-hidden bg-background text-text"
-        dir="rtl"
-    >
+        dir="rtl">
 
         {{-- Background Effects --}}
         <div class="absolute inset-0 -z-0 overflow-hidden">
@@ -27,82 +26,39 @@
 
         {{-- Sections --}}
         <div
-            class="relative z-10 px-6 py-16 mx-auto space-y-20 max-w-7xl"
-        >
+            class="relative z-10 px-6 py-16 mx-auto space-y-24 max-w-7xl">
+
+            {{-- Trends --}}
+            <section id="trends">
+                <x-salon.trends />
+            </section>
+
+            {{-- Services --}}
+            <section id="services">
+                <x-salon.services />
+            </section>
 
             {{-- Gallery --}}
             <section id="gallery">
                 <x-salon.gallery />
             </section>
 
-            {{-- Staff --}}
-            <section id="staff">
-
-                <div class="container px-6 py-20 mx-auto">
-
-                    <div class="mb-12 text-center">
-
-                        <h2 class="text-3xl font-black text-text">
-
-                            <span class="text-primary">
-
-                        </span>
-
-                        </h2>
-                        <p class="mt-4 text-muted">
-
-                        </p>
-
-                    </div>
-
-                    <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-
-                        <x-salon.staff-card />
-
-                    </div>
-
-                </div>
-
-            </section>
-
-            {{-- Services --}}
-            <section id="services">
-
-                <x-salon.services />
-
-            </section>
-
             {{-- Reviews --}}
-            <section>
-
-                <x-salon.review-list />
-
+            <section id="reviews">
+                <x-salon.reviews />
             </section>
 
-            {{-- Booking CTA --}}
-            <section>
-
-                <x-salon.booking-cta />
-
-            </section>
-
-            {{-- Booking --}}
-            <section
-                id="booking"
-                class="p-8 border rounded-3xl border-border bg-surface shadow-lg"
-            >
-
-                <x-booking.stepper />
-
-                <x-booking.calendar />
-
-                <x-booking.time-picker />
-
-                <x-booking.payment-summary />
-
+            {{-- Salon Information --}}
+            <section id="info">
+                <x-salon.info />
             </section>
 
         </div>
+
+        {{-- Booking --}}
+        <section id="booking">
+            <x-salon.booking />
+        </section>
 
     </div>
 

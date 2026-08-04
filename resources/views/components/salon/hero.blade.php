@@ -28,7 +28,7 @@
                     >
 
                         <img
-                            src="{{ asset('images/hero3.jpg') }}"
+                            src="{{ asset('images/login.jpg') }}"
                             alt="آرایشگاه آلیجناب"
                             class="
                 h-[480px]
@@ -96,10 +96,14 @@
                 </div>
 
                 {{-- Heading --}}
-                <h1 class="mt-6 text-4xl font-black leading-tight text-text lg:text-6xl">
+                <h1 class="mt-6 text-5xl font-black leading-tight text-text lg:text-7xl">
 
-                    امروز چه
+                    Define Your
                     <span class="text-primary">
+        Signature Style
+    </span>
+
+                </h1>                    <span class="text-primary">
                         استایلی
                     </span>
 

@@ -14,7 +14,7 @@
                 bg-orange-500/10 border border-orange-500/20 text-orange-500">
 
 
-                @if($notification['type'] === 'booking')
+                @if($notification['type'] === 'bookings')
 
 
                     {{-- Calendar --}}

@@ -2,91 +2,217 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Booking\BookingActionRequest;
+use App\Http\Requests\Booking\BookingFilterRequest;
+use App\Http\Requests\Booking\RescheduleBookingRequest;
 use App\Models\Booking;
-use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 class BookingController extends Controller
 {
-
-    public function index(): View
+    /**
+     * Display bookings list.
+     */
+    public function index(BookingFilterRequest $request): View
     {
-        $salon = auth()->user()->salon;
+        $salonId = auth()->user()->salon->id;
 
+        $query = Booking::query()
+            ->with('service')
+            ->where('salon_id', $salonId);
 
-        $bookings = Booking::with('service')
-            ->where('salon_id', $salon->id)
-            ->latest()
-            ->paginate(10);
+        /*
+        |--------------------------------------------------------------------------
+        | Search
+        |--------------------------------------------------------------------------
+        */
 
+        if ($request->filled('search')) {
+
+            $query->where(function ($q) use ($request) {
+
+                $q->where('customer_name', 'like', '%' . $request->search . '%')
+                    ->orWhere('customer_phone', 'like', '%' . $request->search . '%')
+                    ->orWhere('reference_code', 'like', '%' . $request->search . '%');
+
+            });
+
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Status Filter
+        |--------------------------------------------------------------------------
+        */
+
+        if ($request->filled('status')) {
+
+            $query->where('status', $request->status);
+
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Date Filter
+        |--------------------------------------------------------------------------
+        */
+
+        if ($request->filled('date')) {
+
+            $query->whereDate('booking_date', $request->date);
+
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Sort
+        |--------------------------------------------------------------------------
+        */
+
+        if ($request->sort === 'oldest') {
+
+            $query->oldest();
+
+        } else {
+
+            $query->latest();
+
+        }
+
+        $bookings = $query
+            ->paginate(10)
+            ->withQueryString();
 
         return view('dashboard.bookings.index', compact('bookings'));
     }
 
-
-
+    /**
+     * Display bookings details.
+     */
     public function show(Booking $booking): View
-    {
-        $this->authorizeBooking($booking);
-
-
-        $booking->load('service');
-
-
-        return view('dashboard.bookings.show', compact('booking'));
-    }
-
-
-
-    public function update(Request $request, Booking $booking)
-    {
-        $this->authorizeBooking($booking);
-
-
-        $validated = $request->validate([
-
-            'status' => [
-                'required',
-                'in:pending,approved,rejected,cancelled'
-            ],
-
-            'barber_note' => [
-                'nullable',
-                'string'
-            ],
-
-            'booking_date' => [
-                'nullable',
-                'date'
-            ],
-
-            'booking_time' => [
-                'nullable'
-            ],
-
-        ]);
-
-
-
-        $booking->update($validated);
-
-
-
-        return back()->with(
-            'success',
-            'وضعیت رزرو بروزرسانی شد.'
-        );
-    }
-
-
-
-
-    private function authorizeBooking(Booking $booking): void
     {
         abort_if(
             $booking->salon_id !== auth()->user()->salon->id,
             403
         );
+
+        $booking->load('service');
+
+        return view('dashboard.bookings.show', compact('booking'));
     }
 
+    /**
+     * Approve bookings.
+     */
+    public function approve(
+        BookingActionRequest $request,
+        Booking $booking
+    ): RedirectResponse {
+
+        abort_if(
+            $booking->salon_id !== auth()->user()->salon->id,
+            403
+        );
+
+        $booking->update([
+
+            'status' => 'approved',
+
+            'approved_at' => now(),
+
+            'barber_note' => $request->barber_note,
+
+        ]);
+
+        return back()->with(
+            'success',
+            'رزرو با موفقیت تایید شد.'
+        );
+    }
+
+    /**
+     * Reject bookings.
+     */
+    public function reject(
+        BookingActionRequest $request,
+        Booking $booking
+    ): RedirectResponse {
+
+        abort_if(
+            $booking->salon_id !== auth()->user()->salon->id,
+            403
+        );
+
+        $booking->update([
+
+            'status' => 'rejected',
+
+            'barber_note' => $request->barber_note,
+
+        ]);
+
+        return back()->with(
+            'success',
+            'رزرو با موفقیت رد شد.'
+        );
+    }
+
+    /**
+     * Complete bookings.
+     */
+    public function complete(
+        BookingActionRequest $request,
+        Booking $booking
+    ): RedirectResponse {
+
+        abort_if(
+            $booking->salon_id !== auth()->user()->salon->id,
+            403
+        );
+
+        $booking->update([
+
+            'status' => 'completed',
+
+            'completed_at' => now(),
+
+            'barber_note' => $request->barber_note,
+
+        ]);
+
+        return back()->with(
+            'success',
+            'رزرو با موفقیت تکمیل شد.'
+        );
+    }
+
+    /**
+     * Reschedule bookings.
+     */
+    public function reschedule(
+        RescheduleBookingRequest $request,
+        Booking $booking
+    ): RedirectResponse {
+
+        abort_if(
+            $booking->salon_id !== auth()->user()->salon->id,
+            403
+        );
+
+        $booking->update([
+
+            'booking_date' => $request->booking_date,
+
+            'booking_time' => $request->booking_time,
+
+            'barber_note' => $request->barber_note,
+
+        ]);
+
+        return back()->with(
+            'success',
+            'زمان رزرو با موفقیت تغییر کرد.'
+        );
+    }
 }

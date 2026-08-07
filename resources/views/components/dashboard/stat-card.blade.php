@@ -1,14 +1,16 @@
 @props([
 'title',
 'value',
-'icon' => 'chart'
+'icon' => 'chart',
+'description' => null,
+'trend' => null,
 ])
 
 
-<div
-    class="rounded-2xl border border-zinc-800 bg-zinc-900 p-6 transition hover:border-orange-500/40">
+<div class="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
 
 
+    {{-- Header --}}
     <div class="flex items-center justify-between">
 
 
@@ -29,18 +31,9 @@
 
 
 
-                @case('clock')
+                @case('money')
 
-                <x-lucide-clock-3
-                    class="h-6 w-6 text-orange-500" />
-
-                @break
-
-
-
-                @case('scissors')
-
-                <x-lucide-scissors
+                <x-lucide-wallet
                     class="h-6 w-6 text-orange-500" />
 
                 @break
@@ -56,31 +49,25 @@
 
 
 
+                @case('target')
+
+                <x-lucide-target
+                    class="h-6 w-6 text-orange-500" />
+
+                @break
+
+
+
                 @default
 
                 <x-lucide-chart-column
                     class="h-6 w-6 text-orange-500" />
 
+
             @endswitch
 
 
         </div>
-
-
-
-
-
-        {{-- Action --}}
-        <button
-            type="button"
-            class="text-zinc-500 transition hover:text-orange-500">
-
-
-            <x-lucide-ellipsis
-                class="h-5 w-5" />
-
-
-        </button>
 
 
     </div>
@@ -112,6 +99,43 @@
 
 
     </div>
+
+
+
+
+
+    {{-- Footer --}}
+    @if($description || $trend)
+
+        <div class="mt-4 flex items-center justify-between">
+
+
+            @if($description)
+
+                <span class="text-xs text-zinc-500">
+
+                    {{ $description }}
+
+                </span>
+
+            @endif
+
+
+
+            @if($trend)
+
+                <span class="text-xs font-bold text-green-400">
+
+                    {{ $trend }}
+
+                </span>
+
+            @endif
+
+
+        </div>
+
+    @endif
 
 
 

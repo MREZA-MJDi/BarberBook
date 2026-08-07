@@ -1,178 +1,161 @@
 <x-layouts.dashboard>
 
 
-    {{-- Page Header --}}
-    <div class="mb-8">
+    {{-- Welcome --}}
+    <section>
 
-
-        <h1 class="text-3xl font-black text-white">
-
-            داشبورد
-
-        </h1>
-
-
-
-        <p class="mt-2 text-zinc-400">
-
-            خوش آمدید، مدیریت آرایشگاه خود را از اینجا آغاز کنید.
-
-        </p>
-
-
-    </div>
-
-
-
-
-
-    {{-- Statistics --}}
-    <section
-        class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
-
-
-
-        <x-dashboard.stat-card
-            title="رزروهای امروز"
-            value="{{ $stats['today_bookings'] }}"
-            icon="calendar"
-        />
-
-
-        <x-dashboard.stat-card
-            title="درخواست‌های جدید"
-            value="{{ $stats['pending_bookings'] }}"
-            icon="clock"
-        />
-
-
-        <x-dashboard.stat-card
-            title="خدمات فعال"
-            value="{{ $stats['services_count'] }}"
-            icon="scissors"
-        />
-
-
-        <x-dashboard.stat-card
-            title="مشتریان این ماه"
-            value="{{ $stats['customers_count'] }}"
-            icon="users"
-        />
-
+        <x-dashboard.welcome-card />
 
     </section>
 
 
 
+
+
+    {{-- KPI --}}
     <section class="mt-8">
 
-        <x-dashboard.revenue-chart :revenue="$revenue" />
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+
+
+            <x-dashboard.stat-card
+                title="رزرو امروز"
+                value="12"
+                icon="calendar"
+                description="مشتری امروز"
+                trend="+20%"
+            />
+
+
+            <x-dashboard.stat-card
+                title="درآمد امروز"
+                value="2,450,000"
+                icon="money"
+                description="تومان"
+                trend="+15%"
+            />
+
+
+            <x-dashboard.stat-card
+                title="مشتری جدید"
+                value="8"
+                icon="users"
+                description="این هفته"
+                trend="+3"
+            />
+
+
+            <x-dashboard.stat-card
+                title="هدف درآمد امروز"
+                value="70%"
+                icon="target"
+            />
+
+
+        </div>
 
     </section>
 
 
 
-    {{-- Main Content --}}
+
+
+
+
+    {{-- Next Booking --}}
+    <section class="mt-8">
+
+        <x-dashboard.next-booking />
+
+    </section>
+
+
+
+
+
+
+
+    {{-- Activity + Actions --}}
     <section
-        class="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-3">
+        class="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-2">
 
 
+        <x-dashboard.activity-feed />
 
 
-
-        {{-- Booking --}}
-        <div class="xl:col-span-2">
+        <x-dashboard.quick-actions />
 
 
-            <div
-                class="rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
-
-
-
-                <div class="flex items-center justify-between">
-
-
-                    <div>
-
-                        <h2 class="text-lg font-black text-white">
-
-                            رزروهای امروز
-
-                        </h2>
-
-
-                        <p class="mt-1 text-sm text-zinc-500">
-
-                            آخرین درخواست‌های ثبت شده
-
-                        </p>
-
-
-                    </div>
-
-
-
-
-                    <a href="#"
-                       class="text-sm font-bold text-orange-500 transition hover:text-orange-400">
-
-                        مشاهده همه
-
-                    </a>
-
-
-
-                </div>
+    </section>
 
 
 
 
 
 
-                <div class="mt-6">
 
 
-                    <x-dashboard.booking-table :bookings="$bookings" />
+    {{-- Today Schedule --}}
+    <section class="mt-8">
 
-                </div>
 
+        <x-dashboard.today-schedule />
+
+
+    </section>
+
+
+
+
+
+
+
+
+    {{-- Analytics --}}
+    <section class="mt-8">
+
+
+        <x-dashboard.revenue-chart />
+
+
+    </section>
+
+
+
+
+
+    {{-- Booking List --}}
+    <section class="mt-8">
+
+
+        <div class="rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
+
+
+            <div class="mb-6">
+
+
+                <h2 class="text-lg font-black text-white">
+                    رزروهای امروز
+                </h2>
+
+
+                <p class="mt-1 text-sm text-zinc-500">
+                    آخرین درخواست‌ها
+                </p>
 
 
             </div>
 
 
-
-        </div>
-
-
-
-
-
-
-
-
-        {{-- Sidebar --}}
-        <div class="space-y-6">
-
-
-
-            <x-dashboard.quick-actions />
-
-
-
-            <x-dashboard.qr-card />
+            <x-dashboard.booking-table
+                :bookings="$bookings"
+            />
 
 
         </div>
-
-
-
 
 
     </section>
-
-
-
 
 
 

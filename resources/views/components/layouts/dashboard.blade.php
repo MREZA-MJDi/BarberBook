@@ -11,60 +11,42 @@
         @yield('title', 'داشبورد | BarberBook')
     </title>
 
-
     <meta name="csrf-token" content="{{ csrf_token() }}">
-
 
     @vite([
     'resources/css/app.css',
     'resources/js/app.js',
     ])
 
-
     @stack('styles')
 
 </head>
 
+<body class="min-h-screen bg-zinc-950 text-zinc-100 antialiased">
 
-<body class="bg-zinc-950 text-zinc-100 antialiased min-h-screen">
+{{-- Sidebar --}}
+<x-dashboard.sidebar />
 
+{{-- Main --}}
+<div class="min-h-screen lg:mr-72">
 
-<div class="min-h-screen">
+    {{-- Topbar --}}
+    <x-dashboard.topbar />
 
+    {{-- Page --}}
+    <main class="px-5 py-6 lg:px-8 lg:py-8">
 
-    {{-- Sidebar --}}
-    <x-dashboard.sidebar />
-
-
-
-    {{-- Main Wrapper --}}
-    <div class="lg:mr-72 min-h-screen">
-
-
-        {{-- Topbar --}}
-        <x-dashboard.topbar />
-
-
-
-        {{-- Content --}}
-        <main class="p-5 lg:p-8">
-
+        <div class="mx-auto max-w-7xl">
 
             {{ $slot }}
 
+        </div>
 
-        </main>
-
-
-    </div>
-
+    </main>
 
 </div>
 
-
-
 @stack('scripts')
-
 
 </body>
 

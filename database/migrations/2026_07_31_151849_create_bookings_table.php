@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -33,10 +32,13 @@ return new class extends Migration
             $table->date('booking_date');
 
             $table->time('booking_time');
-
             $table->text('customer_note')->nullable();
 
             $table->text('barber_note')->nullable();
+
+            $table->unsignedInteger('final_price')->nullable();
+
+            $table->unsignedInteger('duration_minutes')->nullable();
 
             $table->enum('status', [
                 'pending',
@@ -45,8 +47,13 @@ return new class extends Migration
                 'rejected',
                 'cancelled',
             ])->default('pending');
-            $table->timestamp('responded_at')->nullable();
+
+            $table->timestamp('approved_at')->nullable();
+
+            $table->timestamp('completed_at')->nullable();
+
             $table->timestamps();
+
         });
     }
 

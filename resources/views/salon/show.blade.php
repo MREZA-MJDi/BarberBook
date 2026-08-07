@@ -4,7 +4,9 @@
 
     <div
         class="relative overflow-hidden bg-background text-text"
-        dir="rtl">
+        dir="rtl"
+    >
+
 
         {{-- Background Effects --}}
         <div class="absolute inset-0 -z-0 overflow-hidden">
@@ -19,46 +21,61 @@
 
         </div>
 
+
         {{-- Hero --}}
         <div class="relative z-10">
-            <x-landing.hero />
+            <x-salon.hero :salon="$salon"/>
         </div>
 
-        {{-- Sections --}}
+
         <div
             class="relative z-10 px-6 py-16 mx-auto space-y-24 max-w-7xl">
 
-            {{-- Trends --}}
-            <section id="trends">
-                <x-salon.trends />
+
+            {{-- Info --}}
+            <section id="info">
+                <x-salon.info :salon="$salon"/>
             </section>
+
 
             {{-- Services --}}
             <section id="services">
-                <x-salon.services />
+                <x-salon.services
+                    :services="$salon->services ?? []"/>
             </section>
+
 
             {{-- Gallery --}}
             <section id="gallery">
-                <x-salon.gallery />
+                <x-salon.gallery
+                    :images="$salon->images ?? []"/>
             </section>
+
 
             {{-- Reviews --}}
             <section id="reviews">
-                <x-salon.reviews />
+                <x-salon.reviews :reviews="$salon->reviews ?? []"
+                />
             </section>
 
-            {{-- Salon Information --}}
-            <section id="info">
-                <x-salon.info />
+
+            {{-- Trends --}}
+            <section id="trends">
+                <x-salon.trends
+                    :salon="$salon"/>
             </section>
+
 
         </div>
 
+
         {{-- Booking --}}
         <section id="booking">
-            <x-salon.booking />
+
+            <x-salon.booking :salon="$salon"/>
+
         </section>
+
 
     </div>
 

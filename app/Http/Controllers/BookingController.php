@@ -6,6 +6,7 @@ use App\Http\Requests\Booking\BookingActionRequest;
 use App\Http\Requests\Booking\BookingFilterRequest;
 use App\Http\Requests\Booking\RescheduleBookingRequest;
 use App\Models\Booking;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -32,12 +33,23 @@ class BookingController extends Controller
 
             $query->where(function ($q) use ($request) {
 
-                $q->where('customer_name', 'like', '%' . $request->search . '%')
-                    ->orWhere('customer_phone', 'like', '%' . $request->search . '%')
-                    ->orWhere('reference_code', 'like', '%' . $request->search . '%');
+                $q->where(
+                    'customer_name',
+                    'like',
+                    '%' . $request->search . '%'
+                )
+                    ->orWhere(
+                        'customer_phone',
+                        'like',
+                        '%' . $request->search . '%'
+                    )
+                    ->orWhere(
+                        'reference_code',
+                        'like',
+                        '%' . $request->search . '%'
+                    );
 
             });
-
         }
 
         /*
@@ -48,8 +60,10 @@ class BookingController extends Controller
 
         if ($request->filled('status')) {
 
-            $query->where('status', $request->status);
-
+            $query->where(
+                'status',
+                $request->status
+            );
         }
 
         /*
@@ -60,8 +74,10 @@ class BookingController extends Controller
 
         if ($request->filled('date')) {
 
-            $query->whereDate('booking_date', $request->date);
-
+            $query->whereDate(
+                'booking_date',
+                $request->date
+            );
         }
 
         /*
@@ -77,18 +93,20 @@ class BookingController extends Controller
         } else {
 
             $query->latest();
-
         }
 
         $bookings = $query
             ->paginate(10)
             ->withQueryString();
 
-        return view('dashboard.bookings.index', compact('bookings'));
+        return view(
+            'dashboard.bookings.index',
+            compact('bookings')
+        );
     }
 
     /**
-     * Display bookings details.
+     * Display booking details.
      */
     public function show(Booking $booking): View
     {
@@ -99,11 +117,14 @@ class BookingController extends Controller
 
         $booking->load('service');
 
-        return view('dashboard.bookings.show', compact('booking'));
+        return view(
+            'dashboard.bookings.show',
+            compact('booking')
+        );
     }
 
     /**
-     * Approve bookings.
+     * Approve booking.
      */
     public function approve(
         BookingActionRequest $request,
@@ -114,6 +135,46 @@ class BookingController extends Controller
             $booking->salon_id !== auth()->user()->salon->id,
             403
         );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Prevent approving an already processed booking
+        |--------------------------------------------------------------------------
+        */
+
+        if ($booking->status !== 'pending') {
+
+            return back()->with(
+                'error',
+                'این رزرو دیگر قابل تایید نیست.'
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check Time Conflict
+        |--------------------------------------------------------------------------
+        */
+
+        if ($this->hasBookingConflict(
+            $booking->salon_id,
+            $booking->booking_date,
+            $booking->booking_time,
+            $booking->duration_minutes,
+            $booking->id
+        )) {
+
+            return back()->with(
+                'error',
+                'این زمان قبلاً توسط رزرو دیگری اشغال شده است.'
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Approve
+        |--------------------------------------------------------------------------
+        */
 
         $booking->update([
 
@@ -132,7 +193,7 @@ class BookingController extends Controller
     }
 
     /**
-     * Reject bookings.
+     * Reject booking.
      */
     public function reject(
         BookingActionRequest $request,
@@ -143,6 +204,14 @@ class BookingController extends Controller
             $booking->salon_id !== auth()->user()->salon->id,
             403
         );
+
+        if ($booking->status !== 'pending') {
+
+            return back()->with(
+                'error',
+                'این رزرو دیگر قابل رد کردن نیست.'
+            );
+        }
 
         $booking->update([
 
@@ -159,7 +228,7 @@ class BookingController extends Controller
     }
 
     /**
-     * Complete bookings.
+     * Complete booking.
      */
     public function complete(
         BookingActionRequest $request,
@@ -170,6 +239,14 @@ class BookingController extends Controller
             $booking->salon_id !== auth()->user()->salon->id,
             403
         );
+
+        if ($booking->status !== 'approved') {
+
+            return back()->with(
+                'error',
+                'فقط رزرو تایید شده قابل تکمیل است.'
+            );
+        }
 
         $booking->update([
 
@@ -188,7 +265,7 @@ class BookingController extends Controller
     }
 
     /**
-     * Reschedule bookings.
+     * Reschedule booking.
      */
     public function reschedule(
         RescheduleBookingRequest $request,
@@ -199,6 +276,42 @@ class BookingController extends Controller
             $booking->salon_id !== auth()->user()->salon->id,
             403
         );
+
+        if ($booking->status !== 'approved') {
+
+            return back()->with(
+                'error',
+                'فقط رزرو تایید شده قابل جابه‌جایی است.'
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check New Time Conflict
+        |--------------------------------------------------------------------------
+        */
+
+        if ($this->hasBookingConflict(
+            $booking->salon_id,
+            $request->booking_date,
+            $request->booking_time,
+            $booking->duration_minutes,
+            $booking->id
+        )) {
+
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'زمان انتخاب‌شده با یک رزرو دیگر تداخل دارد.'
+                );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Update Booking
+        |--------------------------------------------------------------------------
+        */
 
         $booking->update([
 
@@ -214,5 +327,102 @@ class BookingController extends Controller
             'success',
             'زمان رزرو با موفقیت تغییر کرد.'
         );
+    }
+
+    /**
+     * Check whether a booking conflicts with another active booking.
+     */
+    private function hasBookingConflict(
+        int $salonId,
+        string $bookingDate,
+        string $bookingTime,
+        ?int $durationMinutes = null,
+        ?int $ignoreBookingId = null
+    ): bool {
+
+        $durationMinutes = $durationMinutes ?: 60;
+
+        /*
+        |--------------------------------------------------------------------------
+        | New Booking Time Range
+        |--------------------------------------------------------------------------
+        */
+
+        $newStart = Carbon::parse(
+            $bookingDate . ' ' . $bookingTime
+        );
+
+        $newEnd = $newStart->copy()->addMinutes(
+            $durationMinutes
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Existing Active Bookings
+        |--------------------------------------------------------------------------
+        */
+
+        $query = Booking::query()
+            ->where('salon_id', $salonId)
+            ->whereDate('booking_date', $bookingDate)
+            ->whereIn('status', [
+                'pending',
+                'approved',
+            ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Ignore Current Booking During Reschedule
+        |--------------------------------------------------------------------------
+        */
+
+        if ($ignoreBookingId) {
+
+            $query->where(
+                'id',
+                '!=',
+                $ignoreBookingId
+            );
+        }
+
+        $existingBookings = $query->get();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check Overlap
+        |--------------------------------------------------------------------------
+        */
+
+        foreach ($existingBookings as $existingBooking) {
+
+            $existingStart = Carbon::parse(
+                $bookingDate . ' ' . $existingBooking->booking_time
+            );
+
+            $existingEnd = $existingStart->copy()->addMinutes(
+                $existingBooking->duration_minutes ?: 60
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Overlap Formula
+            |--------------------------------------------------------------------------
+            |
+            | New start < Existing end
+            | AND
+            | New end > Existing start
+            |
+            */
+
+            if (
+                $newStart->lt($existingEnd) &&
+                $newEnd->gt($existingStart)
+            ) {
+
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -2,9 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 
-
 // Controllers
-
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
 
@@ -19,7 +17,6 @@ use App\Http\Controllers\SettingController;
 use App\Http\Controllers\ProfileController;
 
 
-
 /*
 |--------------------------------------------------------------------------
 | Guest Routes
@@ -28,43 +25,33 @@ use App\Http\Controllers\ProfileController;
 
 Route::middleware('guest')->group(function () {
 
-
     /*
     |--------------------------------------------------------------------------
     | Login
     |--------------------------------------------------------------------------
     */
 
+    Route::get('/login', [
+        LoginController::class,
+        'create'
+    ])->name('login');
 
-    Route::get('/login',
-        [LoginController::class,'create']
-    )->name('login');
 
-
-
-    Route::post('/login',
-        [LoginController::class,'store']
-    )->name('login.store');
-
+    Route::post('/login', [
+        LoginController::class,
+        'store'
+    ])->name('login.store');
 
 });
 
 
-
-
-
-
-
 /*
 |--------------------------------------------------------------------------
-| Auth Routes
+| Authenticated Routes
 |--------------------------------------------------------------------------
 */
 
-
 Route::middleware('auth')->group(function () {
-
-
 
     /*
     |--------------------------------------------------------------------------
@@ -72,14 +59,8 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
 
-
-    Route::post('/logout',
-        LogoutController::class
-    )->name('logout');
-
-
-
-
+    Route::post('/logout', LogoutController::class)
+        ->name('logout');
 
 
     /*
@@ -88,16 +69,10 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
 
-
-    Route::get('/dashboard',
-        [DashboardController::class,'index']
-    )->name('dashboard');
-
-
-
-
-
-
+    Route::get('/dashboard', [
+        DashboardController::class,
+        'index'
+    ])->name('dashboard');
 
 
     /*
@@ -106,272 +81,221 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
 
+    Route::prefix('dashboard')->group(function () {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Salon Daily Status
+        |--------------------------------------------------------------------------
+        */
 
-    Route::prefix('dashboard')
-        ->group(function () {
+        Route::patch(
+            '/salon/close-today',
+            [
+                DashboardController::class,
+                'closeToday'
+            ]
+        )->name('dashboard.salon.close-today');
 
 
+        Route::patch(
+            '/salon/open-today',
+            [
+                DashboardController::class,
+                'openToday'
+            ]
+        )->name('dashboard.salon.open-today');
 
-            /*
-            |--------------------------------------------------------------------------
-            | Bookings
-            |--------------------------------------------------------------------------
-            */
+
+        /*
+        |--------------------------------------------------------------------------
+        | Bookings
+        |--------------------------------------------------------------------------
+        */
 
+        Route::prefix('bookings')
+            ->name('bookings.')
+            ->group(function () {
 
-            Route::prefix('bookings')
-                ->name('bookings.')
-                ->group(function () {
+                // List
+                Route::get('/', [
+                    BookingController::class,
+                    'index'
+                ])->name('index');
 
 
+                // Show
+                Route::get('/{booking}', [
+                    BookingController::class,
+                    'show'
+                ])->name('show');
 
-                    // List
 
-                    Route::get('/',
-                        [BookingController::class,'index']
-                    )->name('index');
+                // Approve
+                Route::patch('/{booking}/approve', [
+                    BookingController::class,
+                    'approve'
+                ])->name('approve');
 
 
+                // Reject
+                Route::patch('/{booking}/reject', [
+                    BookingController::class,
+                    'reject'
+                ])->name('reject');
 
 
-                    // Show
+                // Complete
+                Route::patch('/{booking}/complete', [
+                    BookingController::class,
+                    'complete'
+                ])->name('complete');
 
-                    Route::get('/{booking}',
-                        [BookingController::class,'show']
-                    )->name('show');
 
+                // Reschedule
+                Route::patch('/{booking}/reschedule', [
+                    BookingController::class,
+                    'reschedule'
+                ])->name('reschedule');
 
+            });
+
 
-                    // Approve
+        /*
+        |--------------------------------------------------------------------------
+        | Salon
+        |--------------------------------------------------------------------------
+        */
+
+        Route::prefix('salon')
+            ->name('salon.')
+            ->group(function () {
+
+                // Salon dashboard / overview
+                Route::get('/', [
+                    SalonController::class,
+                    'index'
+                ])->name('index');
 
-                    Route::patch('/{bookings}/approve',
-                        [BookingController::class,'approve']
-                    )->name('approve');
 
+                // Edit salon
+                Route::get('/edit', [
+                    SalonController::class,
+                    'edit'
+                ])->name('edit');
 
 
+                // Update salon
+                Route::put('/update', [
+                    SalonController::class,
+                    'update'
+                ])->name('update');
 
-                    // Reject
+            });
 
-                    Route::patch('/{bookings}/reject',
-                        [BookingController::class,'reject']
-                    )->name('reject');
 
+        /*
+        |--------------------------------------------------------------------------
+        | Services
+        |--------------------------------------------------------------------------
+        */
 
+        Route::resource(
+            'services',
+            ServiceController::class
+        )->except([
+            'show'
+        ]);
 
 
-                    // Complete
+        /*
+        |--------------------------------------------------------------------------
+        | Working Hours
+        |--------------------------------------------------------------------------
+        */
 
-                    Route::patch('/{bookings}/complete',
-                        [BookingController::class,'complete']
-                    )->name('complete');
+        Route::resource(
+            'working-hours',
+            WorkingHourController::class
+        );
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | QR
+        |--------------------------------------------------------------------------
+        */
 
+        Route::prefix('qr')
+            ->name('qr.')
+            ->group(function () {
 
-                    // Reschedule
+                // QR page
+                Route::get('/', [
+                    QrController::class,
+                    'index'
+                ])->name('index');
 
-                    Route::patch('/{bookings}/reschedule',
-                        [BookingController::class,'reschedule']
-                    )->name('reschedule');
 
+                // Download QR
+                Route::get('/download', [
+                    QrController::class,
+                    'download'
+                ])->name('download');
 
+            });
 
-                });
 
+        /*
+        |--------------------------------------------------------------------------
+        | Reviews
+        |--------------------------------------------------------------------------
+        */
 
+        Route::resource(
+            'reviews',
+            ReviewController::class
+        )->only([
+            'index',
+            'show'
+        ]);
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Settings
+        |--------------------------------------------------------------------------
+        */
 
+        Route::get('/settings', [
+            SettingController::class,
+            'index'
+        ])->name('settings.index');
 
 
+        Route::put('/settings', [
+            SettingController::class,
+            'update'
+        ])->name('settings.update');
 
 
-            /*
-            |--------------------------------------------------------------------------
-            | Salon
-            |--------------------------------------------------------------------------
-            */
+        /*
+        |--------------------------------------------------------------------------
+        | Profile
+        |--------------------------------------------------------------------------
+        */
 
+        Route::get('/profile', [
+            ProfileController::class,
+            'edit'
+        ])->name('profile.edit');
 
-            Route::prefix('salon')
-                ->name('salon.')
-                ->group(function () {
 
+        Route::put('/profile', [
+            ProfileController::class,
+            'update'
+        ])->name('profile.update');
 
-
-                    Route::get('/',
-                        [SalonController::class,'index']
-                    )->name('index');
-
-
-
-                    Route::get('/edit',
-                        [SalonController::class,'edit']
-                    )->name('edit');
-
-
-
-                    Route::put('/update',
-                        [SalonController::class,'update']
-                    )->name('update');
-
-
-                });
-
-
-
-
-
-
-
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Services
-            |--------------------------------------------------------------------------
-            */
-
-
-            Route::resource(
-                'services',
-                ServiceController::class
-            )->except([
-                'show'
-            ]);
-
-
-
-
-
-
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Working Hours
-            |--------------------------------------------------------------------------
-            */
-
-
-            Route::resource(
-                'working-hours',
-                WorkingHourController::class
-            );
-
-
-
-
-
-
-
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | QR
-            |--------------------------------------------------------------------------
-            */
-
-
-            Route::prefix('qr')
-                ->name('qr.')
-                ->group(function () {
-
-
-
-                    Route::get('/',
-                        [QrController::class,'index']
-                    )->name('index');
-
-
-
-                    Route::get('/download',
-                        [QrController::class,'download']
-                    )->name('download');
-
-
-
-                });
-
-
-
-
-
-
-
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Reviews
-            |--------------------------------------------------------------------------
-            */
-
-
-            Route::resource(
-                'reviews',
-                ReviewController::class
-            )->only([
-                'index',
-                'show'
-            ]);
-
-
-
-
-
-
-
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Settings
-            |--------------------------------------------------------------------------
-            */
-
-
-            Route::get('/settings',
-                [SettingController::class,'index']
-            )->name('settings.index');
-
-
-
-            Route::put('/settings',
-                [SettingController::class,'update']
-            )->name('settings.update');
-
-
-
-
-
-
-
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Profile
-            |--------------------------------------------------------------------------
-            */
-
-
-            Route::get('/profile',
-                [ProfileController::class,'edit']
-            )->name('profile.edit');
-
-
-
-            Route::put('/profile',
-                [ProfileController::class,'update']
-            )->name('profile.update');
-
-
-
-        });
-
-
+    });
 
 });

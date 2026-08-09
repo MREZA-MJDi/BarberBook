@@ -72,4 +72,11 @@ class Salon extends Model
     {
         return $this->hasMany(WorkingHour::class);
     }
-}
+
+    /**
+     * @return HasMany
+     */
+    public function dailyStatuses(): HasMany
+    {
+        return $this->hasMany(SalonDailyStatus::class);
+    }}

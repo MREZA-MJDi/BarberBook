@@ -1,148 +1,134 @@
 <x-layouts.dashboard>
 
-
-    {{-- Welcome --}}
+    {{-- =========================================================
+        Welcome
+    ========================================================== --}}
     <section>
-
-        <x-dashboard.welcome-card />
-
+        <x-dashboard.welcome-card
+            :salon-status="$salonStatus"
+            :stats="$stats"
+        />
     </section>
 
 
-
-
-
-    {{-- KPI --}}
+    {{-- =========================================================
+        KPI
+    ========================================================== --}}
     <section class="mt-8">
 
-        <div class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
-
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
 
             <x-dashboard.stat-card
                 title="رزرو امروز"
-                value="12"
+                :value="$stats['today_bookings']"
                 icon="calendar"
-                description="مشتری امروز"
-                trend="+20%"
+                description="رزرو ثبت‌شده امروز"
             />
-
 
             <x-dashboard.stat-card
                 title="درآمد امروز"
-                value="2,450,000"
+                :value="number_format($stats['today_revenue'])"
                 icon="money"
                 description="تومان"
-                trend="+15%"
             />
 
-
             <x-dashboard.stat-card
-                title="مشتری جدید"
-                value="8"
+                title="مشتری‌ها"
+                :value="$stats['customers_count']"
                 icon="users"
-                description="این هفته"
-                trend="+3"
+                description="مشتری ثبت‌شده"
             />
-
 
             <x-dashboard.stat-card
-                title="هدف درآمد امروز"
-                value="70%"
+                title="درخواست‌های در انتظار"
+                :value="$stats['pending_bookings']"
                 icon="target"
+                description="نیازمند بررسی"
             />
-
 
         </div>
 
     </section>
 
 
-
-
-
-
-
-    {{-- Next Booking --}}
+    {{-- =========================================================
+        Next Booking + Quick Actions
+    ========================================================== --}}
     <section class="mt-8">
 
-        <x-dashboard.next-booking />
+        <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+
+            <x-dashboard.next-booking
+                :booking="$nextBooking"
+            />
+
+            <x-dashboard.quick-actions />
+
+        </div>
 
     </section>
 
 
+    {{-- =========================================================
+        Today's Schedule
+    ========================================================== --}}
+    <section class="mt-8">
 
-
-
-
-
-    {{-- Activity + Actions --}}
-    <section
-        class="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-2">
-
-
-        <x-dashboard.activity-feed />
-
-
-        <x-dashboard.quick-actions />
-
+        <x-dashboard.today-schedule
+            :bookings="$bookings"
+        />
 
     </section>
 
 
-
-
-
-
-
-
-    {{-- Today Schedule --}}
+    {{-- =========================================================
+        Activity + Analytics
+    ========================================================== --}}
     <section class="mt-8">
 
+        <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
 
-        <x-dashboard.today-schedule />
+            <x-dashboard.activity-feed
+                :activities="$recentActivities"
+            />
 
+            <x-dashboard.revenue-chart
+                :revenue="$revenue"
+            />
+
+        </div>
 
     </section>
 
 
-
-
-
-
-
-
-    {{-- Analytics --}}
+    {{-- =========================================================
+        Today's Bookings
+    ========================================================== --}}
     <section class="mt-8">
-
-
-        <x-dashboard.revenue-chart />
-
-
-    </section>
-
-
-
-
-
-    {{-- Booking List --}}
-    <section class="mt-8">
-
 
         <div class="rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
 
+            <div class="mb-6 flex items-center justify-between gap-4">
 
-            <div class="mb-6">
+                <div>
+
+                    <h2 class="text-lg font-black text-white">
+                        رزروهای امروز
+                    </h2>
+
+                    <p class="mt-1 text-sm text-zinc-500">
+                        برنامه امروز سالن
+                    </p>
+
+                </div>
 
 
-                <h2 class="text-lg font-black text-white">
-                    رزروهای امروز
-                </h2>
-
-
-                <p class="mt-1 text-sm text-zinc-500">
-                    آخرین درخواست‌ها
-                </p>
-
+                <a
+                    href="{{ route('bookings.index') }}"
+                    class="text-sm font-bold text-orange-400 transition hover:text-orange-300"
+                >
+                    مشاهده همه
+                </a>
 
             </div>
 
@@ -151,13 +137,8 @@
                 :bookings="$bookings"
             />
 
-
         </div>
 
-
     </section>
-
-
-
 
 </x-layouts.dashboard>

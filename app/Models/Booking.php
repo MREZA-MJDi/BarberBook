@@ -18,7 +18,11 @@ class Booking extends Model
         'booking_time',
         'customer_note',
         'barber_note',
+        'final_price',
+        'duration_minutes',
         'status',
+        'approved_at',
+        'completed_at',
     ];
 
     protected static function booted(): void

@@ -108,10 +108,10 @@ Route::middleware('auth')->group(function () {
 
 
         /*
-        |--------------------------------------------------------------------------
-        | Bookings
-        |--------------------------------------------------------------------------
-        */
+ |--------------------------------------------------------------------------
+ | Bookings
+ |--------------------------------------------------------------------------
+ */
 
         Route::prefix('bookings')
             ->name('bookings.')
@@ -122,6 +122,20 @@ Route::middleware('auth')->group(function () {
                     BookingController::class,
                     'index'
                 ])->name('index');
+
+
+                // Create Manual Booking
+                Route::get('/create', [
+                    BookingController::class,
+                    'create'
+                ])->name('create');
+
+
+                // Store Manual Booking
+                Route::post('/', [
+                    BookingController::class,
+                    'store'
+                ])->name('store');
 
 
                 // Show
@@ -159,8 +173,6 @@ Route::middleware('auth')->group(function () {
                 ])->name('reschedule');
 
             });
-
-
         /*
         |--------------------------------------------------------------------------
         | Salon

@@ -78,6 +78,30 @@ class SalonStatus
 
         /*
         |--------------------------------------------------------------------------
+        | Manually Opened Today
+        |--------------------------------------------------------------------------
+        |
+        | If the salon owner manually opens the salon today,
+        | manual open has priority over working hours.
+        |
+        */
+
+        if (
+            $dailyStatus &&
+            $dailyStatus->status === 'open'
+        ) {
+            return [
+                'status' => 'open',
+                'label' => 'باز',
+                'is_open' => true,
+                'is_break' => false,
+                'is_closed' => false,
+                'message' => 'سالن به صورت دستی باز است',
+            ];
+        }
+
+        /*
+        |--------------------------------------------------------------------------
         | Convert Carbon Day To Persian Week System
         |--------------------------------------------------------------------------
         |

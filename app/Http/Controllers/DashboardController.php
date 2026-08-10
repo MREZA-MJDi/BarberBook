@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use App\Models\SalonDailyStatus;
 use App\Support\SalonStatus;
 use App\Models\Booking;
@@ -23,7 +24,6 @@ class DashboardController extends Controller
         */
 
         $bookingQuery = Booking::where('salon_id', $salon->id);
-
 
 
         /*
@@ -133,17 +133,35 @@ class DashboardController extends Controller
             ->take(6)
             ->get();
         /*
-|--------------------------------------------------------------------------
-| Notifications
-|--------------------------------------------------------------------------
-*/
+   |--------------------------------------------------------------------------
+   | Notifications
+   |--------------------------------------------------------------------------
+   */
 
-        $notifications = (clone $bookingQuery)
+        $notificationBookings = (clone $bookingQuery)
             ->where('status', 'pending')
             ->with('service')
             ->latest('created_at')
             ->take(5)
             ->get();
+
+        $notifications = $notificationBookings->map(function ($booking) {
+
+            return [
+                'type' => 'bookings',
+
+                'title' => 'رزرو جدید',
+
+                'message' => sprintf(
+                    '%s برای %s درخواست رزرو داده است.',
+                    $booking->customer_name,
+                    $booking->service?->name ?? 'خدمت'
+                ),
+
+                'time' => $booking->created_at?->diffForHumans(),
+            ];
+
+        })->values()->all();
 
         $notificationsCount = (clone $bookingQuery)
             ->where('status', 'pending')
@@ -383,6 +401,7 @@ class DashboardController extends Controller
             'salonStatus' => $salonStatus,
         ]);
     }
+
     public function closeToday()
     {
         $salon = Auth::user()->salon;

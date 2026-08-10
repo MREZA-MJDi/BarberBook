@@ -163,7 +163,7 @@
             ================================================== --}}
 
             <a
-                href="{{ route('bookings.index') }}"
+                href="{{ route('bookings.create') }}"
                 class="rounded-xl bg-orange-500 px-5 py-3
                 text-sm font-bold text-black
                 transition hover:bg-orange-400"

@@ -2,279 +2,134 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\WorkingHourRequest;
+use App\Http\Requests\UpdateWorkingHoursRequest;
 use App\Models\WorkingHour;
 use App\Support\Days;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
-
 
 class WorkingHourController extends Controller
 {
-
-
     /**
-     * Display working hours.
+     * Display weekly working hours.
      */
     public function index(): View
     {
-
         $salon = auth()->user()->salon;
 
+        abort_unless($salon, 403);
 
-        $workingHours = WorkingHour::where('salon_id', $salon->id)
+        $workingHours = WorkingHour::query()
+            ->where('salon_id', $salon->id)
             ->orderBy('day_of_week')
-            ->get();
+            ->get()
+            ->keyBy('day_of_week');
 
+        /*
+        |--------------------------------------------------------------------------
+        | Always provide all 7 days.
+        |--------------------------------------------------------------------------
+        */
 
+        $week = [];
+
+        foreach (range(0, 6) as $day) {
+            $week[$day] = $workingHours->get($day);
+        }
 
         return view(
             'dashboard.working-hours.index',
             [
-                'workingHours' => $workingHours,
+                'week' => $week,
                 'days' => Days::all(),
             ]
         );
-
     }
 
-
-
-
-
-
-
     /**
-     * Show create form.
+     * Update complete weekly schedule.
      */
-    public function create(): View
-    {
-
-
-        return view(
-            'dashboard.working-hours.create',
-            [
-                'days' => Days::all(),
-            ]
-        );
-
-
-    }
-
-
-
-
-
-
-
-
-
-    /**
-     * Store working hour.
-     */
-    public function store(
-        WorkingHourRequest $request
+    public function updateWeek(
+        UpdateWorkingHoursRequest $request
     ): RedirectResponse {
+        $salon = $request->user()->salon;
 
+        abort_unless($salon, 403);
 
-        $salon = auth()->user()->salon;
+        $days = $request->validated('days');
 
+        DB::transaction(function () use ($salon, $days): void {
 
+            foreach (range(0, 6) as $day) {
 
-        WorkingHour::create([
+                /*
+                |--------------------------------------------------------------------------
+                | Always have a data array for the day.
+                |--------------------------------------------------------------------------
+                */
 
+                $data = $days[$day] ?? [];
 
-            'salon_id' => $salon->id,
+                /*
+                |--------------------------------------------------------------------------
+                | Closed
+                |--------------------------------------------------------------------------
+                */
 
+                $isClosed = filter_var(
+                    $data['is_closed'] ?? false,
+                    FILTER_VALIDATE_BOOLEAN
+                );
 
-            'day_of_week' => $request->day_of_week,
+                /*
+                |--------------------------------------------------------------------------
+                | Save
+                |--------------------------------------------------------------------------
+                |
+                | WorkingHour is the recurring weekly template.
+                |
+                | 0 = Saturday
+                | 1 = Sunday
+                | 2 = Monday
+                | ...
+                | 6 = Friday
+                |
+                */
 
+                WorkingHour::updateOrCreate(
+                    [
+                        'salon_id' => $salon->id,
+                        'day_of_week' => $day,
+                    ],
+                    [
+                        'start_time' => $isClosed
+                            ? null
+                            : ($data['start_time'] ?? null),
 
-            'start_time' => $request->start_time,
+                        'end_time' => $isClosed
+                            ? null
+                            : ($data['end_time'] ?? null),
 
+                        'break_start' => $isClosed
+                            ? null
+                            : ($data['break_start'] ?? null),
 
-            'end_time' => $request->end_time,
+                        'break_end' => $isClosed
+                            ? null
+                            : ($data['break_end'] ?? null),
 
-
-            'break_start' => $request->break_start,
-
-
-            'break_end' => $request->break_end,
-
-
-            'is_closed' => $request->boolean('is_closed'),
-
-
-        ]);
-
-
-
-
+                        'is_closed' => $isClosed,
+                    ]
+                );
+            }
+        });
 
         return redirect()
             ->route('working-hours.index')
             ->with(
                 'success',
-                'ساعت کاری با موفقیت اضافه شد.'
+                'برنامه ساعت کاری هفتگی با موفقیت ذخیره شد.'
             );
-
-
     }
-
-
-
-
-
-
-
-
-
-    /**
-     * Show edit form.
-     */
-    public function edit(
-        WorkingHour $workingHour
-    ): View {
-
-
-        $this->checkOwner($workingHour);
-
-
-
-        return view(
-            'dashboard.working-hours.edit',
-            [
-                'workingHour' => $workingHour,
-                'days' => Days::all(),
-            ]
-        );
-
-
-    }
-
-
-
-
-
-
-
-
-
-    /**
-     * Update working hour.
-     */
-    public function update(
-        WorkingHourRequest $request,
-        WorkingHour $workingHour
-    ): RedirectResponse {
-
-
-        $this->checkOwner($workingHour);
-
-
-
-
-        $workingHour->update([
-
-
-            'day_of_week' => $request->day_of_week,
-
-
-            'start_time' => $request->start_time,
-
-
-            'end_time' => $request->end_time,
-
-
-            'break_start' => $request->break_start,
-
-
-            'break_end' => $request->break_end,
-
-
-            'is_closed' => $request->boolean('is_closed'),
-
-
-        ]);
-
-
-
-
-
-
-        return redirect()
-            ->route('working-hours.index')
-            ->with(
-                'success',
-                'ساعت کاری بروزرسانی شد.'
-            );
-
-
-    }
-
-
-
-
-
-
-
-
-
-    /**
-     * Delete working hour.
-     */
-    public function destroy(
-        WorkingHour $workingHour
-    ): RedirectResponse {
-
-
-        $this->checkOwner($workingHour);
-
-
-
-        $workingHour->delete();
-
-
-
-
-
-        return redirect()
-            ->route('working-hours.index')
-            ->with(
-                'success',
-                'ساعت کاری حذف شد.'
-            );
-
-
-    }
-
-
-
-
-
-
-
-
-
-    /**
-     * Check ownership.
-     */
-    private function checkOwner(
-        WorkingHour $workingHour
-    ): void {
-
-
-        abort_if(
-
-            $workingHour->salon_id !== auth()->user()->salon->id,
-
-            403
-
-        );
-
-
-    }
-
-
-
 }

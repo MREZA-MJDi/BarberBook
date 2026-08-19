@@ -1,136 +1,149 @@
-<div class="space-y-4">
-
+<div class="space-y-3">
 
     @forelse($notifications as $notification)
 
+        <a
+            href="{{ route('bookings.show', $notification['booking_id']) }}"
+            class="group block rounded-2xl border border-zinc-800 bg-zinc-950 p-4 transition duration-200 hover:border-orange-500/40 hover:bg-zinc-900/70"
+        >
 
-        <div
-            class="flex items-start gap-4 rounded-xl border border-zinc-800 bg-zinc-950 p-4 transition hover:border-orange-500/40">
+            <div class="flex items-start gap-4">
 
+                {{-- Icon --}}
+                <div
+                    class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-orange-500/20 bg-orange-500/10 text-orange-500 transition group-hover:bg-orange-500/15"
+                >
 
-            {{-- Icon --}}
-            <div
-                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl
-                bg-orange-500/10 border border-orange-500/20 text-orange-500">
+                    @if($notification['type'] === 'bookings')
 
+                        <x-lucide-calendar-days class="h-5 w-5" />
 
-                @if($notification['type'] === 'bookings')
+                    @elseif($notification['type'] === 'success')
 
+                        <x-lucide-circle-check class="h-5 w-5" />
 
-                    {{-- Calendar --}}
-                    <svg xmlns="http://www.w3.org/2000/svg"
-                         class="h-5 w-5"
-                         fill="none"
-                         viewBox="0 0 24 24"
-                         stroke="currentColor">
+                    @else
 
-                        <path stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2"
-                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        <x-lucide-bell class="h-5 w-5" />
 
-                    </svg>
+                    @endif
 
-
-                @elseif($notification['type'] === 'success')
+                </div>
 
 
-                    {{-- Check --}}
-                    <svg xmlns="http://www.w3.org/2000/svg"
-                         class="h-5 w-5"
-                         fill="none"
-                         viewBox="0 0 24 24"
-                         stroke="currentColor">
+                {{-- Content --}}
+                <div class="min-w-0 flex-1">
 
-                        <path stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2"
-                              d="M5 13l4 4L19 7"/>
+                    <div class="flex items-start justify-between gap-3">
 
-                    </svg>
+                        <div>
 
+                            <h4 class="font-bold text-white">
+                                {{ $notification['title'] }}
+                            </h4>
 
-                @else
+                            <p class="mt-1 text-sm leading-6 text-zinc-400">
+                                {{ $notification['message'] }}
+                            </p>
 
-
-                    {{-- Bell --}}
-                    <svg xmlns="http://www.w3.org/2000/svg"
-                         class="h-5 w-5"
-                         fill="none"
-                         viewBox="0 0 24 24"
-                         stroke="currentColor">
-
-                        <path stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2"
-                              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1"/>
-
-                    </svg>
+                        </div>
 
 
-                @endif
+                        {{-- Pending indicator --}}
+                        <span
+                            class="mt-1 h-2 w-2 shrink-0 rounded-full bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.7)]"
+                        ></span>
 
+                    </div>
+
+
+                    {{-- Booking Meta --}}
+                    @if($notification['type'] === 'bookings')
+
+                        <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+
+                            <span class="inline-flex items-center gap-1.5 text-xs text-zinc-500">
+
+                                <x-lucide-calendar
+                                    class="h-3.5 w-3.5"
+                                />
+
+                                {{ $notification['date'] }}
+
+                            </span>
+
+
+                            <span class="inline-flex items-center gap-1.5 text-xs font-bold text-orange-400">
+
+                                <x-lucide-clock
+                                    class="h-3.5 w-3.5"
+                                />
+
+                                {{ $notification['time'] }}
+
+                            </span>
+
+                        </div>
+
+                    @endif
+
+
+                    {{-- Footer --}}
+                    <div class="mt-3 flex items-center justify-between">
+
+                        <span class="text-[11px] text-zinc-600">
+                            {{ $notification['created_at'] }}
+                        </span>
+
+
+                        <span
+                            class="inline-flex items-center gap-1 text-[11px] font-bold text-zinc-600 transition group-hover:text-orange-400"
+                        >
+
+                            مشاهده رزرو
+
+                            <x-lucide-arrow-left
+                                class="h-3 w-3 transition-transform group-hover:-translate-x-0.5"
+                            />
+
+                        </span>
+
+                    </div>
+
+                </div>
 
             </div>
 
-
-
-
-
-            {{-- Content --}}
-            <div class="flex-1">
-
-
-                <h4 class="font-bold text-white">
-
-                    {{ $notification['title'] }}
-
-                </h4>
-
-
-
-                <p class="mt-1 text-sm text-zinc-400">
-
-                    {{ $notification['message'] }}
-
-                </p>
-
-
-
-                <span class="mt-2 block text-xs text-zinc-600">
-
-                    {{ $notification['time'] }}
-
-                </span>
-
-
-            </div>
-
-
-
-        </div>
-
-
+        </a>
 
     @empty
 
-
         <div
-            class="rounded-xl border border-dashed border-zinc-800 bg-zinc-950 p-6 text-center">
+            class="flex min-h-[180px] flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-800 bg-zinc-950 p-6 text-center"
+        >
+
+            <div
+                class="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-900"
+            >
+
+                <x-lucide-bell-off
+                    class="h-5 w-5 text-zinc-600"
+                />
+
+            </div>
 
 
-            <p class="text-sm text-zinc-500">
-
+            <p class="mt-4 text-sm font-bold text-zinc-400">
                 اعلان جدیدی وجود ندارد.
-
             </p>
 
 
+            <p class="mt-1 text-xs text-zinc-600">
+                وقتی رزرو جدیدی ثبت شود، اینجا نمایش داده می‌شود.
+            </p>
+
         </div>
 
-
     @endforelse
-
-
 
 </div>

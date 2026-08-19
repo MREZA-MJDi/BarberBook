@@ -1,156 +1,177 @@
-<div
-    class="group overflow-hidden rounded-[30px] border border-border bg-surface transition-all duration-300 hover:-translate-y-2 hover:border-primary/40 hover:shadow-2xl">
+{{-- resources/views/components/salon/service-card.blade.php --}}
 
-    {{-- Image --}}
-    <div class="relative h-72 overflow-hidden">
+@props([
+'service',
+])
 
-        <img
-            src="{{ asset('images/service-3.jpg') }}"
-            alt="اصلاح کلاسیک"
-            class="h-full w-full object-cover transition duration-700 group-hover:scale-110">
+<article
+    class="
+        group
+        flex
+        h-full
+        flex-col
+        rounded-[26px]
+        border
+        border-border
+        bg-surface
+        p-6
+        transition-all
+        duration-300
+        hover:-translate-y-1
+        hover:border-primary
+        hover:bg-primary/5
+    "
+>
 
-        {{-- Overlay --}}
-        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"></div>
+    {{-- =========================================================
+        Icon
+    ========================================================== --}}
 
-        {{-- Badge --}}
-        <span
-            class="absolute top-4 right-4 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-white shadow-lg">
-
-            🔥 محبوب
-
-        </span>
-
-        {{-- Rating --}}
-        <div
-            class="absolute bottom-4 left-4 flex items-center gap-2 rounded-full bg-black/50 px-3 py-2 text-sm text-white backdrop-blur">
-
-            <span>⭐ 4.9</span>
-
-            <span class="text-white/70">
-
-                (۲۳۴ نظر)
-
-            </span>
-
-        </div>
-
+    <div
+        class="
+            flex
+            h-14
+            w-14
+            shrink-0
+            items-center
+            justify-center
+            rounded-2xl
+            bg-primary/10
+            text-3xl
+            transition-transform
+            duration-300
+            group-hover:scale-105
+        "
+    >
+        ✂️
     </div>
 
-    {{-- Content --}}
-    <div class="p-6">
 
-        {{-- Title --}}
-        <div class="flex items-start justify-between gap-4">
+    {{-- =========================================================
+        Service Information
+    ========================================================== --}}
 
-            <div>
+    <div class="flex flex-1 flex-col">
 
-                <h3 class="text-2xl font-black text-text">
+        {{-- Service Name --}}
 
-                    اصلاح کلاسیک
+        <h2 class="mt-6 text-xl font-black text-text">
+            {{ $service->name }}
+        </h2>
 
-                </h3>
 
-                <p class="mt-2 text-sm leading-7 text-muted">
+        {{-- Description --}}
 
-                    اصلاح حرفه‌ای همراه با شستشو و استایل مو.
+        @if($service->description)
 
-                </p>
+            <p class="mt-3 text-sm leading-7 text-muted">
+                {{ $service->description }}
+            </p>
 
-            </div>
+        @else
+
+            <p class="mt-3 text-sm leading-7 text-muted">
+                دریافت این خدمت با کیفیت و زمان‌بندی مشخص.
+            </p>
+
+        @endif
+
+
+        {{-- =====================================================
+            Service Meta
+        ====================================================== --}}
+
+        <div class="mt-auto pt-6">
 
             <div
-                class="rounded-xl bg-primary/10 px-3 py-2 text-xs font-bold text-primary whitespace-nowrap">
+                class="
+                    flex
+                    items-end
+                    justify-between
+                    gap-4
+                    border-t
+                    border-border
+                    pt-5
+                "
+            >
 
-                ⏱ ۴۵ دقیقه
+                {{-- Duration + Price --}}
 
-            </div>
+                <div>
 
-        </div>
+                    <p class="text-sm text-muted">
+                        حدود {{ $service->duration }} دقیقه
+                    </p>
 
-        {{-- Tags --}}
-        <div class="mt-6 flex flex-wrap gap-2">
+                    <p class="mt-2 text-lg font-black text-primary">
 
-            <span
-                class="rounded-full bg-background px-3 py-1.5 text-xs text-muted border border-border">
+                        {{ number_format($service->price) }}
 
-                ✂ اصلاح
+                        <span class="text-xs font-bold">
+                            تومان
+                        </span>
 
-            </span>
+                    </p>
 
-            <span
-                class="rounded-full bg-background px-3 py-1.5 text-xs text-muted border border-border">
+                </div>
 
-                💈 استایل
 
-            </span>
+                {{-- Availability --}}
 
-            <span
-                class="rounded-full bg-background px-3 py-1.5 text-xs text-muted border border-border">
-
-                🧴 شستشو
-
-            </span>
-
-        </div>
-
-        {{-- Info --}}
-        <div
-            class="mt-6 flex items-center justify-between rounded-2xl bg-background px-4 py-3">
-
-            <div class="flex items-center gap-2 text-sm text-muted">
-
-                🔥
-
-                <span>
-
-                    ۱۲۶ رزرو موفق
-
+                <span
+                    class="
+                        shrink-0
+                        rounded-full
+                        bg-primary/10
+                        px-3
+                        py-1
+                        text-sm
+                        font-black
+                        text-primary
+                    "
+                >
+                    قابل رزرو
                 </span>
 
             </div>
 
-            <div class="flex items-center gap-2 text-sm text-muted">
 
-                💬
+            {{-- =================================================
+                Booking Action
+            ================================================== --}}
 
-                <span>
+            <div class="mt-5">
 
-                    ۲۳۴ نظر
-
-                </span>
+                <a
+                    href="{{ route('salon.public', [
+                        'qr_token' => $service->salon->qr_token,
+                        'service_id' => $service->id,
+                    ]) }}#booking"
+                    class="
+                        flex
+                        w-full
+                        items-center
+                        justify-center
+                        rounded-2xl
+                        bg-primary
+                        px-5
+                        py-3
+                        text-sm
+                        font-black
+                        text-white
+                        transition
+                        duration-200
+                        hover:opacity-90
+                        active:scale-[0.98]
+                    "
+                >
+                    رزرو این خدمت
+                </a>
 
             </div>
-
-        </div>
-
-        {{-- Footer --}}
-        <div class="mt-8 flex items-center justify-between">
-
-            <div>
-
-                <p class="text-xs text-muted">
-
-                    قیمت
-
-                </p>
-
-                <p class="mt-1 text-2xl font-black text-secondary">
-
-                    ۲۵۰,۰۰۰ تومان
-
-                </p>
-
-            </div>
-
-            <button
-                class="rounded-2xl bg-primary px-6 py-3 font-bold text-white transition-all duration-300 hover:scale-105 hover:bg-primary-hover active:scale-95">
-
-                انتخاب سرویس
-
-            </button>
 
         </div>
 
     </div>
 
-</div>
+</article>

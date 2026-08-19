@@ -12,7 +12,21 @@ use Carbon\CarbonInterface;
 class BookingAvailabilityService
 {
     /**
-     * Check whether the salon is closed for a specific date.
+     * Default booking slot interval.
+     *
+     * Booking slots are generated every 30 minutes.
+     *
+     * Working hours themselves may still use 15-minute precision.
+     */
+    private const DEFAULT_INTERVAL_MINUTES = 30;
+
+    /**
+     * Check whether salon is closed for a specific date.
+     *
+     * Priority:
+     *
+     * 1. Explicit daily status
+     * 2. Weekly working hours
      */
     public function isSalonClosed(
         int $salonId,
@@ -24,6 +38,9 @@ class BookingAvailabilityService
         |--------------------------------------------------------------------------
         | Explicit Daily Status
         |--------------------------------------------------------------------------
+        |
+        | A daily status overrides the weekly template.
+        |
         */
 
         $dailyStatus = SalonDailyStatus::query()
@@ -60,27 +77,6 @@ class BookingAvailabilityService
         |--------------------------------------------------------------------------
         | Weekly Working Hours
         |--------------------------------------------------------------------------
-        |
-        | IMPORTANT:
-        |
-        | Database convention:
-        |
-        | 0 = Saturday
-        | 1 = Sunday
-        | 2 = Monday
-        | 3 = Tuesday
-        | 4 = Wednesday
-        | 5 = Thursday
-        | 6 = Friday
-        |
-        | Carbon uses:
-        |
-        | 0 = Sunday
-        | ...
-        | 6 = Saturday
-        |
-        | So we MUST use Days::fromCarbon().
-        |
         */
 
         $dayOfWeek = Days::fromCarbon($date);
@@ -131,7 +127,8 @@ class BookingAvailabilityService
     }
 
     /**
-     * Check whether a specific time is inside working hours.
+     * Check whether a booking fits completely inside
+     * working hours and does not overlap the break.
      */
     public function isWithinWorkingHours(
         int $salonId,
@@ -143,7 +140,7 @@ class BookingAvailabilityService
 
         /*
         |--------------------------------------------------------------------------
-        | Salon Closed
+        | Closed
         |--------------------------------------------------------------------------
         */
 
@@ -173,13 +170,13 @@ class BookingAvailabilityService
 
         $durationMinutes = $durationMinutes ?: 60;
 
+        $dateString = $date->format('Y-m-d');
+
         /*
         |--------------------------------------------------------------------------
         | Opening / Closing
         |--------------------------------------------------------------------------
         */
-
-        $dateString = $date->format('Y-m-d');
 
         $start = Carbon::parse(
             $dateString . ' ' . $workingHour->start_time
@@ -211,6 +208,16 @@ class BookingAvailabilityService
         |--------------------------------------------------------------------------
         | After Closing
         |--------------------------------------------------------------------------
+        |
+        | Example:
+        |
+        | Working: 08:00 - 19:00
+        | Service: 60 min
+        |
+        | 18:30 is NOT valid because:
+        |
+        | 18:30 + 60 = 19:30
+        |
         */
 
         if ($bookingEnd->gt($end)) {
@@ -219,7 +226,7 @@ class BookingAvailabilityService
 
         /*
         |--------------------------------------------------------------------------
-        | Break Time
+        | Break
         |--------------------------------------------------------------------------
         */
 
@@ -238,8 +245,13 @@ class BookingAvailabilityService
 
             /*
             |--------------------------------------------------------------------------
-            | Booking Overlaps Break
+            | Booking overlaps break
             |--------------------------------------------------------------------------
+            |
+            | Start < Break End
+            | AND
+            | End > Break Start
+            |
             */
 
             if (
@@ -254,7 +266,7 @@ class BookingAvailabilityService
     }
 
     /**
-     * Check whether a booking conflicts with another active booking.
+     * Check whether booking conflicts with another active booking.
      */
     public function hasBookingConflict(
         int $salonId,
@@ -297,12 +309,6 @@ class BookingAvailabilityService
                 'approved',
             ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Ignore Current Booking
-        |--------------------------------------------------------------------------
-        */
-
         if ($ignoreBookingId !== null) {
             $query->where(
                 'id',
@@ -331,17 +337,6 @@ class BookingAvailabilityService
                     $booking->duration_minutes ?: 60
                 );
 
-            /*
-            |--------------------------------------------------------------------------
-            | Overlap Formula
-            |--------------------------------------------------------------------------
-            |
-            | New Start < Existing End
-            | AND
-            | New End > Existing Start
-            |
-            */
-
             if (
                 $newStart->lt($existingEnd) &&
                 $newEnd->gt($existingStart)
@@ -354,7 +349,7 @@ class BookingAvailabilityService
     }
 
     /**
-     * Check whether a time slot can be booked.
+     * Check whether a specific booking time is available.
      */
     public function isAvailable(
         int $salonId,
@@ -363,6 +358,7 @@ class BookingAvailabilityService
         ?int $durationMinutes = 60,
         ?int $ignoreBookingId = null
     ): bool {
+
         /*
         |--------------------------------------------------------------------------
         | Working Hours + Break
@@ -402,13 +398,13 @@ class BookingAvailabilityService
     }
 
     /**
-     * Return available time slots for a specific date.
+     * Get available booking slots for a date.
      */
     public function getAvailableSlots(
         int $salonId,
         CarbonInterface|string $date,
         int $durationMinutes = 60,
-        int $intervalMinutes = 30
+        int $intervalMinutes = self::DEFAULT_INTERVAL_MINUTES
     ): array {
         $date = Carbon::parse($date)->startOfDay();
 
@@ -442,11 +438,14 @@ class BookingAvailabilityService
             return [];
         }
 
-        $durationMinutes = $durationMinutes ?: 60;
+        $durationMinutes = max(
+            1,
+            $durationMinutes
+        );
 
         $intervalMinutes = $intervalMinutes > 0
             ? $intervalMinutes
-            : 30;
+            : self::DEFAULT_INTERVAL_MINUTES;
 
         $dateString = $date->format('Y-m-d');
 
@@ -470,6 +469,24 @@ class BookingAvailabilityService
         |--------------------------------------------------------------------------
         | Generate Slots
         |--------------------------------------------------------------------------
+        |
+        | Example:
+        |
+        | Working: 08:00 - 19:00
+        | Break:   15:00 - 16:00
+        | Interval: 30
+        |
+        | Result:
+        |
+        | 08:00
+        | 08:30
+        | ...
+        | 14:30
+        | 16:00
+        | 16:30
+        | ...
+        | 18:00
+        |
         */
 
         for (
@@ -501,7 +518,7 @@ class BookingAvailabilityService
     }
 
     /**
-     * Get availability information for a specific date.
+     * Get complete availability information for a date.
      */
     public function getDateAvailability(
         int $salonId,

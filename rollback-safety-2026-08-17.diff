@@ -1,0 +1,4830 @@
+diff --git a/app/Http/Controllers/PublicSalonController.php b/app/Http/Controllers/PublicSalonController.php
+index eb7eb22..0c99580 100644
+--- a/app/Http/Controllers/PublicSalonController.php
++++ b/app/Http/Controllers/PublicSalonController.php
+@@ -3,23 +3,39 @@
+ namespace App\Http\Controllers;
+ 
+ use App\Models\Salon;
++use App\Services\BookingAvailabilityService;
++use Carbon\Carbon;
+ use Illuminate\View\View;
++use Morilog\Jalali\Jalalian;
+ 
+ class PublicSalonController extends Controller
+ {
++    /**
++     * Booking availability service.
++     */
++    public function __construct(
++        protected BookingAvailabilityService $availabilityService
++    ) {
++    }
++
+     /*
+     |--------------------------------------------------------------------------
+-    | Public Salon
++    | Show Public Salon
+     |--------------------------------------------------------------------------
+-    |
+-    | Customer enters this page by scanning the salon QR Code.
+-    |
+     */
+ 
+-    public function show(string $qr_token): View
+-    {
++    /**
++     * Display the public salon page.
++     *
++     * This page is the main customer-facing page reached
++     * through the salon QR code.
++     */
++    public function show(
++        string $qr_token
++    ): View {
++
+         /*
+-        |--------------------------------------------------------------------------
++        |-----------------------------------------------------re---------------------
+         | Find Active Salon
+         |--------------------------------------------------------------------------
+         */
+@@ -28,9 +44,28 @@ public function show(string $qr_token): View
+             ->where('qr_token', $qr_token)
+             ->where('is_active', true)
+             ->with([
++                /*
++                |--------------------------------------------------------------------------
++                | Active Services
++                |--------------------------------------------------------------------------
++                */
++
+                 'services' => function ($query) {
+                     $query
+                         ->where('is_active', true)
++                        ->orderBy('name');
++                },
++
++                /*
++                |--------------------------------------------------------------------------
++                | Active Gallery
++                |--------------------------------------------------------------------------
++                */
++
++                'galleryItems' => function ($query) {
++                    $query
++                        ->where('is_active', true)
++                        ->orderBy('sort_order')
+                         ->orderBy('id');
+                 },
+             ])
+@@ -63,6 +98,111 @@ public function show(string $qr_token): View
+             : 0;
+ 
+ 
++        /*
++        |--------------------------------------------------------------------------
++        | Selected Date
++        |--------------------------------------------------------------------------
++        |
++        | Public UI uses Jalali dates.
++        |
++        | Example:
++        | 1405/05/25
++        |
++        */
++
++        $requestedDate = request('date');
++
++        $selectedDate = $requestedDate
++            ? $this->parseBookingDate($requestedDate)
++            : Carbon::today();
++
++
++        /*
++        |--------------------------------------------------------------------------
++        | Date Fallback
++        |--------------------------------------------------------------------------
++        */
++
++        if (!$selectedDate) {
++            $selectedDate = Carbon::today();
++        }
++
++
++        $selectedDate = $selectedDate
++            ->copy()
++            ->startOfDay();
++
++
++        /*
++        |--------------------------------------------------------------------------
++        | Jalali Date For UI
++        |--------------------------------------------------------------------------
++        */
++
++        $jalaliDate = Jalalian::fromCarbon(
++            $selectedDate
++        )->format('Y/m/d');
++
++
++        /*
++        |--------------------------------------------------------------------------
++        | Selected Service
++        |--------------------------------------------------------------------------
++        |
++        | The selected service must come from this salon's
++        | active services collection.
++        |
++        */
++
++        $selectedService = null;
++
++        if (request()->filled('service_id')) {
++
++            $selectedService = $salon->services->firstWhere(
++                'id',
++                (int) request('service_id')
++            );
++        }
++
++
++        /*
++        |--------------------------------------------------------------------------
++        | Selected Time
++        |--------------------------------------------------------------------------
++        */
++
++        $selectedTime =
++            request('booking_time');
++
++
++        /*
++        |--------------------------------------------------------------------------
++        | Available Slots
++        |--------------------------------------------------------------------------
++        */
++
++        $availableSlots = [];
++
++        if ($selectedService) {
++
++            $availableSlots =
++                $this->availabilityService->getAvailableSlots(
++                    $salon->id,
++                    $selectedDate,
++                    $selectedService->duration
++                );
++        }
++
++
++        /*
++        |--------------------------------------------------------------------------
++        | Gallery Items
++        |--------------------------------------------------------------------------
++        */
++
++        $galleryItems = $salon->galleryItems;
++
++
+         /*
+         |--------------------------------------------------------------------------
+         | Return Public Salon Page
+@@ -71,12 +211,162 @@ public function show(string $qr_token): View
+ 
+         return view(
+             'salon.show',
+-            compact(
+-                'salon',
+-                'reviews',
+-                'reviewsCount',
+-                'averageRating'
+-            )
++            [
++                'salon' =>
++                    $salon,
++
++                'reviews' =>
++                    $reviews,
++
++                'reviewsCount' =>
++                    $reviewsCount,
++
++                'averageRating' =>
++                    $averageRating,
++
++                'galleryItems' =>
++                    $galleryItems,
++
++                'selectedDate' =>
++                    $selectedDate,
++
++                'jalaliDate' =>
++                    $jalaliDate,
++
++                'selectedService' =>
++                    $selectedService,
++
++                'availableSlots' =>
++                    $availableSlots,
++
++                'selectedTime' =>
++                    $selectedTime,
++            ]
+         );
+     }
++
++
++    /*
++    |--------------------------------------------------------------------------
++    | Helpers
++    |--------------------------------------------------------------------------
++    */
++
++    /**
++     * Parse booking date.
++     *
++     * Supports:
++     *
++     * Jalali:
++     * 1405/05/25
++     * 1405-05-25
++     *
++     * Gregorian:
++     * 2026/08/16
++     * 2026-08-16
++     */
++    private function parseBookingDate(
++        ?string $date
++    ): ?Carbon {
++
++        /*
++        |--------------------------------------------------------------------------
++        | Empty Date
++        |--------------------------------------------------------------------------
++        */
++
++        if (!$date) {
++            return null;
++        }
++
++
++        $date = trim($date);
++
++
++        if ($date === '') {
++            return null;
++        }
++
++
++        /*
++        |--------------------------------------------------------------------------
++        | Normalize Separator
++        |--------------------------------------------------------------------------
++        */
++
++        $normalized = str_replace(
++            '-',
++            '/',
++            $date
++        );
++
++
++        /*
++        |--------------------------------------------------------------------------
++        | Try Jalali
++        |--------------------------------------------------------------------------
++        */
++
++        try {
++
++            if (
++                preg_match(
++                    '/^\d{4}\/\d{1,2}\/\d{1,2}$/',
++                    $normalized
++                )
++            ) {
++
++                [$year] = explode(
++                    '/',
++                    $normalized
++                );
++
++
++                /*
++                |--------------------------------------------------------------------------
++                | Prevent Gregorian Year From Being Interpreted As Jalali
++                |--------------------------------------------------------------------------
++                */
++
++                if (
++                    (int) $year >= 1200 &&
++                    (int) $year <= 1500
++                ) {
++
++                    return Jalalian::fromFormat(
++                        'Y/m/d',
++                        $normalized
++                    )
++                        ->toCarbon()
++                        ->startOfDay();
++                }
++            }
++
++        } catch (\Throwable) {
++
++            /*
++            | Continue with Gregorian parser.
++            */
++
++        }
++
++
++        /*
++        |--------------------------------------------------------------------------
++        | Try Gregorian
++        |--------------------------------------------------------------------------
++        */
++
++        try {
++
++            return Carbon::createFromFormat(
++                'Y/m/d',
++                $normalized
++            )->startOfDay();
++
++        } catch (\Throwable) {
++
++            return null;
++        }
++    }
+ }
+diff --git a/app/Http/Controllers/SalonController.php b/app/Http/Controllers/SalonController.php
+index fd5dca7..9edb8b8 100644
+--- a/app/Http/Controllers/SalonController.php
++++ b/app/Http/Controllers/SalonController.php
+@@ -2,23 +2,116 @@
+ 
+ namespace App\Http\Controllers;
+ 
+-use App\Models\Salon;
++use Illuminate\Http\Request;
++use Illuminate\Support\Facades\Auth;
+ 
+ class SalonController extends Controller
+ {
+-    public function show(Salon $salon)
++    /**
++     * Dashboard salon overview.
++     */
++    public function index()
+     {
+-        abort_if(!$salon->is_active, 404);
++        $user = Auth::user();
+ 
++        $salon = $user->salon;
+ 
+-        $salon->load([
+-            'services',
+-            'workingHours',
++        return view('dashboard.salon.index', [
++            'user' => $user,
++            'salon' => $salon,
+         ]);
++    }
++
++
++    /**
++     * Show salon edit form.
++     */
++    public function edit()
++    {
++        $user = Auth::user();
+ 
++        $salon = $user->salon;
+ 
+-        return view('salon.show', [
++        return view('salon.edit', [
++            'user' => $user,
+             'salon' => $salon,
+         ]);
+     }
++
++
++    /**
++     * Update salon information.
++     */
++    public function update(Request $request)
++    {
++        $user = Auth::user();
++
++        $salon = $user->salon;
++
++        $validated = $request->validate([
++            'name' => [
++                'required',
++                'string',
++                'max:255',
++            ],
++
++            'description' => [
++                'nullable',
++                'string',
++                'max:2000',
++            ],
++
++            'phone' => [
++                'nullable',
++                'string',
++                'max:30',
++            ],
++
++            'address' => [
++                'nullable',
++                'string',
++                'max:1000',
++            ],
++
++            'instagram' => [
++                'nullable',
++                'string',
++                'max:255',
++            ],
++        ], [
++            'name.required' => 'نام سالن الزامی است.',
++            'name.string' => 'نام سالن معتبر نیست.',
++            'name.max' => 'نام سالن نمی‌تواند بیشتر از ۲۵۵ کاراکتر باشد.',
++
++            'description.string' => 'توضیحات سالن معتبر نیست.',
++            'description.max' => 'توضیحات سالن نمی‌تواند بیشتر از ۲۰۰۰ کاراکتر باشد.',
++
++            'phone.string' => 'شماره تماس معتبر نیست.',
++            'phone.max' => 'شماره تماس نمی‌تواند بیشتر از ۳۰ کاراکتر باشد.',
++
++            'address.string' => 'آدرس سالن معتبر نیست.',
++            'address.max' => 'آدرس سالن نمی‌تواند بیشتر از ۱۰۰۰ کاراکتر باشد.',
++
++            'instagram.string' => 'اطلاعات اینستاگرام معتبر نیست.',
++            'instagram.max' => 'اطلاعات اینستاگرام نمی‌تواند بیشتر از ۲۵۵ کاراکتر باشد.',
++        ]);
++
++
++        $salon->update([
++            'name' => $validated['name'],
++
++            'description' => $validated['description'] ?? null,
++
++            'phone' => $validated['phone'] ?? null,
++
++            'address' => $validated['address'] ?? null,
++
++            'instagram' => $validated['instagram'] ?? null,
++        ]);
++
++
++        return redirect()
++            ->route('settings.index')
++            ->with('success', 'اطلاعات سالن با موفقیت بروزرسانی شد.');
++    }
+ }
+diff --git a/app/Http/Controllers/SettingController.php b/app/Http/Controllers/SettingController.php
+index f6f588d..378c19e 100644
+--- a/app/Http/Controllers/SettingController.php
++++ b/app/Http/Controllers/SettingController.php
+@@ -2,6 +2,7 @@
+ 
+ namespace App\Http\Controllers;
+ 
++use Illuminate\Http\Request;
+ use Illuminate\Support\Facades\Auth;
+ 
+ class SettingController extends Controller
+@@ -17,4 +18,69 @@ public function index()
+             'salon' => $salon,
+         ]);
+     }
++
++
++    public function update(Request $request)
++    {
++        $user = Auth::user();
++
++        $salon = $user->salon;
++
++        $validated = $request->validate([
++            'name' => [
++                'required',
++                'string',
++                'max:255',
++            ],
++
++            'description' => [
++                'nullable',
++                'string',
++                'max:2000',
++            ],
++
++            'phone' => [
++                'nullable',
++                'string',
++                'max:30',
++            ],
++
++            'address' => [
++                'nullable',
++                'string',
++                'max:1000',
++            ],
++
++            'instagram' => [
++                'nullable',
++                'string',
++                'max:255',
++            ],
++        ], [
++            'name.required' => 'نام سالن الزامی است.',
++            'name.max' => 'نام سالن نمی‌تواند بیشتر از ۲۵۵ کاراکتر باشد.',
++
++            'description.max' => 'توضیحات سالن نمی‌تواند بیشتر از ۲۰۰۰ کاراکتر باشد.',
++
++            'phone.max' => 'شماره تماس نمی‌تواند بیشتر از ۳۰ کاراکتر باشد.',
++
++            'address.max' => 'آدرس سالن نمی‌تواند بیشتر از ۱۰۰۰ کاراکتر باشد.',
++
++            'instagram.max' => 'اطلاعات اینستاگرام نمی‌تواند بیشتر از ۲۵۵ کاراکتر باشد.',
++        ]);
++
++
++        $salon->update([
++            'name' => $validated['name'],
++            'description' => $validated['description'] ?? null,
++            'phone' => $validated['phone'] ?? null,
++            'address' => $validated['address'] ?? null,
++            'instagram' => $validated['instagram'] ?? null,
++        ]);
++
++
++        return redirect()
++            ->route('settings.index')
++            ->with('success', 'اطلاعات سالن با موفقیت بروزرسانی شد.');
++    }
+ }
+diff --git a/app/Models/Salon.php b/app/Models/Salon.php
+index dcd35ef..68b0b92 100644
+--- a/app/Models/Salon.php
++++ b/app/Models/Salon.php
+@@ -87,4 +87,11 @@ public function dailyStatuses(): HasMany
+     {
+         return $this->hasMany(SalonDailyStatus::class);
+     }
++
++    public function galleryItems(): HasMany
++    {
++        return $this->hasMany(GalleryItem::class)
++            ->orderBy('sort_order')
++            ->orderBy('id');
++    }
+ }
+diff --git a/resources/css/app.css b/resources/css/app.css
+index 3721ad0..104feb0 100644
+--- a/resources/css/app.css
++++ b/resources/css/app.css
+@@ -1,267 +1,132 @@
+ @import "./fonts.css";
+ @import "tailwindcss";
+ 
+-
+-@tailwind base;
+-@tailwind components;
+-@tailwind utilities;
+-
+-
+-
+ @theme {
+-
+-
+     /* =========================
+        Typography
+     ========================== */
+ 
++    --font-sans: "Vazirmatn", sans-serif;
+     --font-vazir: "Vazirmatn", sans-serif;
+ 
+ 
+-
+-
+-
+     /* =========================
+        Base Colors
+     ========================== */
+ 
+-
+     --color-background: #09090B;
+-
+     --color-surface: #18181B;
+-
+     --color-surface-light: #222225;
+-
+     --color-card: #111113;
+ 
+ 
+-
+-
+-
+     /* =========================
+        Brand
+     ========================== */
+ 
+-
+     --color-primary: #F97316;
+-
+     --color-primary-hover: #EA580C;
+ 
+-
+     --color-secondary: #FB923C;
+-
+     --color-secondary-hover: #F97316;
+ 
+ 
+-
+-
+-
+-
+-
+     /* =========================
+        Text
+     ========================== */
+ 
+-
+     --color-text: #FAFAFA;
+-
+     --color-muted: #A1A1AA;
+ 
+ 
+-
+-
+-
+-
+-
+     /* =========================
+        Border
+     ========================== */
+ 
+-
+     --color-border: #27272A;
+ 
+ 
+-
+-
+-
+-
+-
+     /* =========================
+        Status Colors
+     ========================== */
+ 
+-
+     --color-success: #22C55E;
+-
+     --color-danger: #EF4444;
+-
+     --color-warning: #FACC15;
+ 
+ 
+-
+-
+-
+-
+-
+     /* =========================
+        Shadows
+     ========================== */
+ 
+-
+-    --shadow-soft:
+-        0 12px 35px rgba(0,0,0,.35);
+-
+-
++    --shadow-soft: 0 12px 35px rgba(0, 0, 0, .35);
+ }
+ 
+ 
+-
+-
+-
+ /* =========================
+    Global
+ ========================== */
+ 
+-
+ html {
+-
+     direction: rtl;
+-
+     scroll-behavior: smooth;
+-
+ }
+ 
+-
+-
+-
+-
+ body {
+-
+-
+-    font-family: var(--font-vazir);
+-
+-
++    font-family: "Vazirmatn", sans-serif;
+     background: var(--color-background);
+-
+-
+     color: var(--color-text);
+-
+-
+     -webkit-font-smoothing: antialiased;
+-
+-
+     text-rendering: optimizeLegibility;
+-
+-
+ }
+ 
+ 
+-
+-
+-
+-
+-
+ /* =========================
+    Selection
+ ========================== */
+ 
+-
+ ::selection {
+-
+-
+     background: var(--color-primary);
+-
+-
+     color: white;
+-
+-
+ }
+ 
+ 
+-
+-
+-
+-
+-
+ /* =========================
+    Scrollbar
+ ========================== */
+ 
+-
+ ::-webkit-scrollbar {
+-
+-
+     width: 8px;
+-
+-
+ }
+ 
+-
+-
+ ::-webkit-scrollbar-track {
+-
+-
+     background: var(--color-background);
+-
+-
+ }
+ 
+-
+-
+ ::-webkit-scrollbar-thumb {
+-
+-
+     background: #323238;
+-
+-
+     border-radius: 999px;
+-
+-
+ }
+ 
+-
+-
+ ::-webkit-scrollbar-thumb:hover {
+-
+-
+     background: var(--color-primary);
+-
+-
+ }
+ 
+ 
+-
+-
+-
+-
+-
+ /* =========================
+    Animations
+ ========================== */
+ 
+-
+ @keyframes floating {
+-
+-
+     0% {
+-
+         transform: translateY(0);
+-
+     }
+ 
+-
+     50% {
+-
+         transform: translateY(-10px);
+-
+     }
+ 
+-
+     100% {
+-
+         transform: translateY(0);
+-
+     }
+-
+-
+ }
+diff --git a/resources/js/app.js b/resources/js/app.js
+index 01368b0..b3f56c1 100644
+--- a/resources/js/app.js
++++ b/resources/js/app.js
+@@ -1,6 +1,6 @@
+ import Alpine from 'alpinejs'
+ import collapse from '@alpinejs/collapse'
+-
++import './booking/ajax-navigation';
+ Alpine.plugin(collapse)
+ 
+ window.Alpine = Alpine
+diff --git a/resources/views/components/booking/calendar.blade.php b/resources/views/components/booking/calendar.blade.php
+index 8545a25..a7ff7d8 100644
+--- a/resources/views/components/booking/calendar.blade.php
++++ b/resources/views/components/booking/calendar.blade.php
+@@ -16,6 +16,7 @@
+             ? Jalalian::fromCarbon($selectedDate)
+             : Jalalian::now();
+ 
++
+     /*
+     |--------------------------------------------------------------------------
+     | Selected Jalali Date
+@@ -27,6 +28,7 @@
+             ? $jalaliDate
+             : $currentDate->format('Y/m/d');
+ 
++
+     /*
+     |--------------------------------------------------------------------------
+     | Current Year / Month
+@@ -39,6 +41,7 @@
+     $currentMonth =
+         (int) $currentDate->format('m');
+ 
++
+     /*
+     |--------------------------------------------------------------------------
+     | Month Names
+@@ -60,6 +63,7 @@
+         12 => 'اسفند',
+     ];
+ 
++
+     /*
+     |--------------------------------------------------------------------------
+     | Persian Digits
+@@ -81,6 +85,7 @@
+         ]);
+     };
+ 
++
+     /*
+     |--------------------------------------------------------------------------
+     | Month Start
+@@ -96,6 +101,7 @@
+         )
+     );
+ 
++
+     /*
+     |--------------------------------------------------------------------------
+     | Days In Month
+@@ -105,6 +111,7 @@
+     $daysInMonth =
+         $monthStart->getMonthDays();
+ 
++
+     /*
+     |--------------------------------------------------------------------------
+     | First Day Of Week
+@@ -114,43 +121,44 @@
+     $firstDayOfWeek =
+         $monthStart->getDayOfWeek();
+ 
++
+     /*
+     |--------------------------------------------------------------------------
+     | Previous / Next Month
+     |--------------------------------------------------------------------------
+     |
+-    | IMPORTANT:
+-    | Never mutate $monthStart.
++    | Use copy() so $monthStart remains unchanged.
+     |
+     */
+ 
+-    $previousMonthStart = Jalalian::fromFormat(
+-        'Y/m/d',
+-        sprintf(
+-            '%04d/%02d/01',
+-            $currentYear,
+-            $currentMonth
+-        )
+-    );
++   $previousMonthStart = Jalalian::fromFormat(
++    'Y/m/d',
++    sprintf(
++        '%04d/%02d/01',
++        $currentYear,
++        $currentMonth
++    )
++);
++
++$nextMonthStart = Jalalian::fromFormat(
++    'Y/m/d',
++    sprintf(
++        '%04d/%02d/01',
++        $currentYear,
++        $currentMonth
++    )
++);
+ 
+-    $nextMonthStart = Jalalian::fromFormat(
+-        'Y/m/d',
+-        sprintf(
+-            '%04d/%02d/01',
+-            $currentYear,
+-            $currentMonth
+-        )
+-    );
++$previousMonth =
++    $previousMonthStart
++        ->subMonths(1)
++        ->format('Y/m/d');
+ 
+-    $previousMonth =
+-        $previousMonthStart
+-            ->subMonths(1)
+-            ->format('Y/m/d');
++$nextMonth =
++    $nextMonthStart
++        ->addMonths(1)
++        ->format('Y/m/d');
+ 
+-    $nextMonth =
+-        $nextMonthStart
+-            ->addMonths(1)
+-            ->format('Y/m/d');
+ 
+     /*
+     |--------------------------------------------------------------------------
+@@ -163,6 +171,7 @@
+             ? $selectedService?->id
+             : request('service_id');
+ 
++
+     /*
+     |--------------------------------------------------------------------------
+     | Selected Time
+@@ -172,6 +181,7 @@
+     $bookingTime =
+         request('booking_time');
+ 
++
+     /*
+     |--------------------------------------------------------------------------
+     | Calendar URL
+@@ -182,22 +192,31 @@
+         $serviceId,
+         $bookingTime
+     ) {
++
+         return route(
+             'bookings.create',
+             array_filter(
+                 [
+-                    'date' => $date,
+-                    'service_id' => $serviceId,
+-                    'booking_time' => $bookingTime,
++                    'date' =>
++                        $date,
++
++                    'service_id' =>
++                        $serviceId,
++
++                    'booking_time' =>
++                        $bookingTime,
+                 ],
+                 function ($value) {
++
+                     return $value !== null
+                         && $value !== '';
++
+                 }
+             )
+         );
+     };
+ 
++
+     /*
+     |--------------------------------------------------------------------------
+     | Today
+@@ -219,10 +238,12 @@ function ($value) {
+ 
+ <div class="flex items-center justify-between gap-3">
+ 
++
+     {{-- Previous Month --}}
+ 
+     <a
+         href="{{ $calendarUrl($previousMonth) }}"
++        data-booking-ajax
+         class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-surface text-lg font-black text-muted transition hover:border-primary hover:text-primary"
+         aria-label="ماه قبل"
+     >
+@@ -235,8 +256,11 @@ class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border bor
+     <div class="text-center">
+ 
+         <p class="text-lg font-black text-text">
++
+             {{ $monthNames[$currentMonth] }}
++
+             {{ $toPersianDigits($currentYear) }}
++
+         </p>
+ 
+         <p class="mt-1 text-xs font-bold text-muted">
+@@ -250,6 +274,7 @@ class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border bor
+ 
+     <a
+         href="{{ $calendarUrl($nextMonth) }}"
++        data-booking-ajax
+         class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-surface text-lg font-black text-muted transition hover:border-primary hover:text-primary"
+         aria-label="ماه بعد"
+     >
+@@ -325,15 +350,19 @@ class="py-2 text-center text-xs font-black text-muted"
+                 )
+             );
+ 
++
+             $dayValue =
+                 $dayDate->format('Y/m/d');
+ 
++
+             $isSelected =
+                 $dayValue === $selectedJalaliDate;
+ 
++
+             $isToday =
+                 $dayValue === $todayJalali;
+ 
++
+             $isPast =
+                 $dayDate->getTimestamp()
+                 <
+@@ -354,6 +383,7 @@ class="flex aspect-square items-center justify-center rounded-xl text-sm font-bo
+ 
+             <a
+                 href="{{ $calendarUrl($dayValue) }}"
++                data-booking-ajax
+                 class="
+                     group
+                     relative
+@@ -374,10 +404,12 @@ class="
+                             : 'border-transparent bg-surface text-text hover:border-primary/50 hover:bg-primary/5'
+                     }}
+                     "
++                aria-label="انتخاب تاریخ {{ $dayValue }}"
+             >
+ 
+                 {{ $toPersianDigits($day) }}
+ 
++
+                 @if($isToday && !$isSelected)
+ 
+                     <span
+@@ -412,11 +444,14 @@ class="mt-6 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-4"
+             </p>
+ 
+             <p class="mt-1 text-sm font-black text-text">
++
+                 {{ $toPersianDigits($selectedJalaliDate) }}
++
+             </p>
+ 
+         </div>
+ 
++
+         <div
+             class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-lg"
+         >
+@@ -436,6 +471,7 @@ class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-
+ 
+     <a
+         href="{{ $calendarUrl($todayJalali) }}"
++        data-booking-ajax
+         class="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-border px-4 py-3 text-sm font-black text-muted transition hover:border-primary hover:text-primary"
+     >
+         برو به امروز
+diff --git a/resources/views/components/booking/time-picker.blade.php b/resources/views/components/booking/time-picker.blade.php
+index e57a892..3aef42f 100644
+--- a/resources/views/components/booking/time-picker.blade.php
++++ b/resources/views/components/booking/time-picker.blade.php
+@@ -143,7 +143,7 @@ class="mt-6 rounded-2xl border border-dashed border-border bg-background p-8 tex
+         No Available Slots
+     ========================================================== --}}
+ 
+-@elseif(empty($slots))
++@elseif(empty($slots)
+ 
+     <div
+         class="mt-6 rounded-2xl border border-dashed border-border bg-background p-8 text-center"
+@@ -165,9 +165,9 @@ class="mt-6 rounded-2xl border border-dashed border-border bg-background p-8 tex
+     </div>
+ 
+ 
+-    {{-- =========================================================
+-        Slots
+-    ========================================================== --}}
++{{-- =========================================================
++    Slots
++========================================================== --}}
+ 
+ @else
+ 
+@@ -177,12 +177,6 @@ class="mt-6 rounded-2xl border border-dashed border-border bg-background p-8 tex
+ 
+             @php
+ 
+-                /*
+-                |--------------------------------------------------------------------------
+-                | Normalize Time
+-                |--------------------------------------------------------------------------
+-                */
+-
+                 if ($time instanceof \DateTimeInterface) {
+ 
+                     $timeValue =
+@@ -198,20 +192,9 @@ class="mt-6 rounded-2xl border border-dashed border-border bg-background p-8 tex
+                         );
+                 }
+ 
+-                /*
+-                |--------------------------------------------------------------------------
+-                | Selected
+-                |--------------------------------------------------------------------------
+-                */
+-
+                 $isActive =
+                     $selectedTime === $timeValue;
+ 
+-                /*
+-                |--------------------------------------------------------------------------
+-                | URL
+-                |--------------------------------------------------------------------------
+-                */
+ 
+                 $timeRoute = array_filter(
+                     [
+@@ -225,8 +208,10 @@ class="mt-6 rounded-2xl border border-dashed border-border bg-background p-8 tex
+                             $timeValue,
+                     ],
+                     function ($value) {
++
+                         return $value !== null
+                             && $value !== '';
++
+                     }
+                 );
+ 
+@@ -235,6 +220,7 @@ function ($value) {
+ 
+             <a
+                 href="{{ route('bookings.create', $timeRoute) }}"
++                data-booking-ajax
+                 class="
+                     flex
+                     items-center
+@@ -253,7 +239,7 @@ class="
+                             ? 'scale-[1.03] border-primary bg-primary text-white shadow-lg shadow-primary/20'
+                             : 'border-border bg-background text-text hover:-translate-y-1 hover:border-primary hover:bg-primary/5'
+                     }}
+-                    "
++                "
+             >
+ 
+                 {{ $toPersianDigits($timeValue) }}
+diff --git a/resources/views/components/dashboard/sidebar.blade.php b/resources/views/components/dashboard/sidebar.blade.php
+index cff5e0d..1d34926 100644
+--- a/resources/views/components/dashboard/sidebar.blade.php
++++ b/resources/views/components/dashboard/sidebar.blade.php
+@@ -1,14 +1,13 @@
+ <aside
+     class="fixed inset-y-0 right-0 z-50 hidden w-72 border-l border-zinc-800 bg-zinc-950 lg:flex lg:flex-col">
+ 
+-
+     {{-- Logo --}}
+     <div class="flex h-20 items-center border-b border-zinc-800 px-6">
+ 
+         <a href="{{ route('dashboard') }}" class="flex items-center gap-3">
+ 
+             <div
+-                class="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500/10 border border-orange-500/20">
++                class="flex h-12 w-12 items-center justify-center rounded-2xl border border-orange-500/20 bg-orange-500/10">
+ 
+                 <span class="text-xl font-black text-orange-500">
+                     B
+@@ -16,14 +15,12 @@ class="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500/10 b
+ 
+             </div>
+ 
+-
+             <div>
+ 
+                 <h1 class="text-lg font-black text-white">
+                     BarberBook
+                 </h1>
+ 
+-
+                 <p class="text-xs text-zinc-500">
+                     Barber Dashboard
+                 </p>
+@@ -34,20 +31,17 @@ class="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500/10 b
+ 
+     </div>
+ 
+-
+-
+-
+-
+     {{-- Navigation --}}
+-    <nav class="flex-1 space-y-2 p-5">
+-
++    <nav class="flex-1 space-y-2 overflow-y-auto p-5">
+ 
+         {{-- Dashboard --}}
+-        <a href="{{ route('dashboard') }}"
+-           class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition
+-           {{ request()->routeIs('dashboard')
++        <a
++            href="{{ route('dashboard') }}"
++            class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition
++            {{ request()->routeIs('dashboard')
+                 ? 'bg-orange-500 text-black'
+-                : 'text-zinc-300 hover:bg-zinc-900 hover:text-white' }}">
++                : 'text-zinc-300 hover:bg-zinc-900 hover:text-white' }}"
++        >
+ 
+             <x-lucide-house class="h-5 w-5" />
+ 
+@@ -57,231 +51,176 @@ class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transiti
+ 
+         </a>
+ 
+-
+-
+-
+-
+         {{-- Bookings --}}
+-        <a href="{{ route('bookings.index') }}"
+-           class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition
+-           {{ request()->routeIs('bookings.*')
++        <a
++            href="{{ route('bookings.index') }}"
++            class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition
++            {{ request()->routeIs('bookings.*')
+                 ? 'bg-orange-500 text-black'
+-                : 'text-zinc-300 hover:bg-zinc-900 hover:text-white' }}">
+-
++                : 'text-zinc-300 hover:bg-zinc-900 hover:text-white' }}"
++        >
+ 
+             <x-lucide-calendar-days class="h-5 w-5" />
+ 
+-
+             <span>
+                 رزروها
+             </span>
+ 
+-
+         </a>
+ 
+-
+-
+-
+-
+-
+-
+         {{-- Services --}}
+-        <a href="{{ route('services.index') }}"
+-           class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition
+-           {{ request()->routeIs('services.*')
++        <a
++            href="{{ route('services.index') }}"
++            class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition
++            {{ request()->routeIs('services.*')
+                 ? 'bg-orange-500 text-black'
+-                : 'text-zinc-300 hover:bg-zinc-900 hover:text-white' }}">
+-
++                : 'text-zinc-300 hover:bg-zinc-900 hover:text-white' }}"
++        >
+ 
+             <x-lucide-scissors class="h-5 w-5" />
+ 
+-
+             <span>
+                 خدمات
+             </span>
+ 
+-
+         </a>
+ 
+-
+-
+-
+-
+-
+-
+         {{-- Working Hours --}}
+-        <a href="{{ route('working-hours.index') }}"
+-           class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition
+-           {{ request()->routeIs('working-hours.*')
++        <a
++            href="{{ route('working-hours.index') }}"
++            class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition
++            {{ request()->routeIs('working-hours.*')
+                 ? 'bg-orange-500 text-black'
+-                : 'text-zinc-300 hover:bg-zinc-900 hover:text-white' }}">
+-
++                : 'text-zinc-300 hover:bg-zinc-900 hover:text-white' }}"
++        >
+ 
+             <x-lucide-clock-3 class="h-5 w-5" />
+ 
+-
+             <span>
+                 ساعات کاری
+             </span>
+ 
+-
+         </a>
+ 
++        {{-- Gallery --}}
++        <a
++            href="{{ route('gallery.index') }}"
++            class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition
++            {{ request()->routeIs('gallery.*')
++                ? 'bg-orange-500 text-black'
++                : 'text-zinc-300 hover:bg-zinc-900 hover:text-white' }}"
++        >
+ 
++            <x-lucide-images class="h-5 w-5" />
+ 
++            <span>
++                گالری
++            </span>
+ 
+-
+-
++        </a>
+ 
+         {{-- QR --}}
+-        <a href="{{ route('qr.index') }}"
+-           class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition
+-           {{ request()->routeIs('qr.*')
++        <a
++            href="{{ route('qr.index') }}"
++            class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition
++            {{ request()->routeIs('qr.*')
+                 ? 'bg-orange-500 text-black'
+-                : 'text-zinc-300 hover:bg-zinc-900 hover:text-white' }}">
+-
++                : 'text-zinc-300 hover:bg-zinc-900 hover:text-white' }}"
++        >
+ 
+             <x-lucide-qr-code class="h-5 w-5" />
+ 
+-
+             <span>
+                 QR رزرو
+             </span>
+ 
+-
+         </a>
+ 
+-
+-
+-
+-
+-
+-
+         {{-- Reviews --}}
+-        <a href="{{ route('reviews.index') }}"
+-           class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition
+-           {{ request()->routeIs('reviews.*')
++        <a
++            href="{{ route('reviews.index') }}"
++            class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition
++            {{ request()->routeIs('reviews.*')
+                 ? 'bg-orange-500 text-black'
+-                : 'text-zinc-300 hover:bg-zinc-900 hover:text-white' }}">
+-
++                : 'text-zinc-300 hover:bg-zinc-900 hover:text-white' }}"
++        >
+ 
+             <x-lucide-star class="h-5 w-5" />
+ 
+-
+             <span>
+                 نظرات
+             </span>
+ 
+-
+         </a>
+ 
+-
+-
+-
+-
+-
+-
+         {{-- Settings --}}
+-        <a href="{{ route('settings.index') }}"
+-           class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition
+-           {{ request()->routeIs('settings.*')
++        <a
++            href="{{ route('settings.index') }}"
++            class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition
++            {{ request()->routeIs('settings.*')
+                 ? 'bg-orange-500 text-black'
+-                : 'text-zinc-300 hover:bg-zinc-900 hover:text-white' }}">
+-
++                : 'text-zinc-300 hover:bg-zinc-900 hover:text-white' }}"
++        >
+ 
+             <x-lucide-settings class="h-5 w-5" />
+ 
+-
+             <span>
+                 تنظیمات
+             </span>
+ 
+-
+         </a>
+ 
+-
+-
+     </nav>
+ 
+-
+-
+-
+-
+-
+-
+     {{-- Footer --}}
+     <div class="border-t border-zinc-800 p-5">
+ 
+-
+         <div class="mb-5 flex items-center gap-3">
+ 
+-
+             <div
+-                class="flex h-12 w-12 items-center justify-center rounded-full bg-orange-500 text-black font-black">
+-
+-
+-                {{ mb_substr(auth()->user()->full_name ?? 'B',0,1) }}
++                class="flex h-12 w-12 items-center justify-center rounded-full bg-orange-500 font-black text-black"
++            >
+ 
++                {{ mb_substr(auth()->user()->full_name ?? 'B', 0, 1) }}
+ 
+             </div>
+ 
+-
+-
+-
+-
+             <div>
+ 
+-
+                 <p class="font-semibold text-white">
+ 
+                     {{ auth()->user()->full_name ?? 'آرایشگر' }}
+ 
+                 </p>
+ 
+-
+-
+                 <p class="text-xs text-zinc-500">
+ 
+                     {{ auth()->user()->email ?? '' }}
+ 
+                 </p>
+ 
+-
+             </div>
+ 
+-
+         </div>
+ 
+-
+-
+-
+-
+-
+-
+         {{-- Logout --}}
+         <form method="POST" action="{{ route('logout') }}">
+ 
+             @csrf
+ 
+-
+             <button
+-                class="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-400 transition hover:bg-red-500 hover:text-white">
+-
++                type="submit"
++                class="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-400 transition hover:bg-red-500 hover:text-white"
++            >
+ 
+                 <x-lucide-log-out class="h-5 w-5" />
+ 
+-
+                 خروج از حساب
+ 
+-
+             </button>
+ 
+-
+         </form>
+ 
+-
+-
+     </div>
+ 
+-
+ </aside>
+diff --git a/resources/views/components/salon/booking.blade.php b/resources/views/components/salon/booking.blade.php
+index 9cad13f..767e5c6 100644
+--- a/resources/views/components/salon/booking.blade.php
++++ b/resources/views/components/salon/booking.blade.php
+@@ -1,282 +1,741 @@
+-<section id="booking" class="py-24 bg-background" dir="rtl">
++{{-- resources/views/components/salon/booking.blade.php --}}
+ 
+-    <div class="max-w-7xl mx-auto px-5">
++<section
++    id="booking"
++    class="bg-background py-24"
++    data-ajax-booking="public"
++    dir="rtl"
++>
++    <div class="mx-auto max-w-7xl px-5">
++
++        {{-- =========================================================
++            Header
++        ========================================================== --}}
+ 
+-        {{-- Header --}}
+         <div class="text-center">
+ 
+             <span
+-                class="inline-flex items-center rounded-full bg-primary/10 px-4 py-2 text-sm font-bold text-primary">
+-
++                class="inline-flex items-center rounded-full bg-primary/10 px-4 py-2 text-sm font-black text-primary"
++            >
+                 رزرو آنلاین
+-
+             </span>
+ 
+-            <h2 class="mt-5 text-4xl font-black text-text">
+-
++            <h2 class="mt-5 text-3xl font-black text-text sm:text-4xl">
+                 فقط چند قدم تا نوبتت باقی مونده
+-
+             </h2>
+ 
+             <p class="mx-auto mt-4 max-w-2xl leading-8 text-muted">
+-
+-                تاریخ و ساعت مناسب خودت رو انتخاب کن و بدون تماس تلفنی نوبتت رو ثبت کن.
+-
++                خدمت، تاریخ و ساعت مناسب خودت رو انتخاب کن و بدون تماس تلفنی
++                نوبتت رو ثبت کن.
+             </p>
+ 
+         </div>
+ 
+ 
+-        <div class="mt-14 grid gap-8 lg:grid-cols-3">
++        {{-- =========================================================
++            Booking Form
++        ========================================================== --}}
+ 
++        <form
++            method="POST"
++            action="{{ route('salon.booking.store', ['qr_token' => $salon->qr_token]) }}"
++            class="mt-14"
++        >
+ 
+-            {{-- Left --}}
+-            <div class="space-y-6 lg:col-span-2">
++            @csrf
+ 
++            {{-- Values required by PublicBookingController@store --}}
++            <input
++                type="hidden"
++                name="service_id"
++                value="{{ $selectedService?->id }}"
++            >
+ 
+-                {{-- Salon Info --}}
+-                <div
+-                    class="rounded-[30px] border border-border bg-surface p-7">
++            <input
++                type="hidden"
++                name="booking_date"
++                value="{{ $selectedDate?->format('Y-m-d') }}"
++            >
+ 
++            <input
++                type="hidden"
++                name="booking_time"
++                value="{{ $selectedTime }}"
++            >
+ 
+-                    <div class="flex items-start justify-between">
+ 
++            <div class="grid gap-8 lg:grid-cols-3">
+ 
+-                        <div>
++                {{-- =====================================================
++                    Main Content
++                ====================================================== --}}
+ 
+-                            <h3 class="text-2xl font-black text-text">
++                <div class="space-y-6 lg:col-span-2">
+ 
+-                                آرایشگاه آلیجناب
+ 
+-                            </h3>
++                    {{-- =================================================
++                        Salon Info
++                    ================================================== --}}
+ 
++                    <div
++                        class="rounded-[30px] border border-border bg-surface p-7"
++                    >
+ 
+-                            <p class="mt-3 text-muted">
++                        <div
++                            class="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between"
++                        >
+ 
+-                                قزوین، خیابان فلسطین، روبروی بانک ملی
++                            <div>
+ 
+-                            </p>
++                                <p class="text-sm font-bold text-primary">
++                                    رزرو در
++                                </p>
++
++                                <h3 class="mt-2 text-2xl font-black text-text">
++                                    {{ $salon->name }}
++                                </h3>
++
++                                @if($salon->address)
++
++                                    <p class="mt-3 leading-7 text-muted">
++                                        {{ $salon->address }}
++                                    </p>
+ 
++                                @endif
++
++                            </div>
++
++
++                            <span
++                                class="inline-flex w-fit shrink-0 items-center rounded-full bg-emerald-500/10 px-4 py-2 text-sm font-black text-emerald-400"
++                            >
++
++                                <span
++                                    class="ml-2 h-2.5 w-2.5 rounded-full bg-emerald-400"
++                                ></span>
++
++                                فعال
++
++                            </span>
+ 
+                         </div>
+ 
+ 
+-                        <span
+-                            class="rounded-full bg-primary/10 px-4 py-2 text-sm font-bold text-primary">
++                        <div class="mt-6 flex flex-wrap gap-3">
++
++                            @if($salon->phone)
++
++                                <a
++                                    href="tel:{{ $salon->phone }}"
++                                    class="rounded-2xl border border-border bg-background px-5 py-3 text-sm font-bold text-text transition hover:border-primary hover:text-primary"
++                                >
++                                    📞 تماس با آرایشگاه
++                                </a>
++
++                            @endif
++
++
++                            @if($salon->address)
+ 
+-                            باز است
++                                <a
++                                    href="https://www.google.com/maps/search/?api=1&query={{ urlencode($salon->address) }}"
++                                    target="_blank"
++                                    rel="noopener noreferrer"
++                                    class="rounded-2xl border border-border bg-background px-5 py-3 text-sm font-bold text-text transition hover:border-primary hover:text-primary"
++                                >
++                                    🗺 مشاهده روی نقشه
++                                </a>
+ 
+-                        </span>
++                            @endif
+ 
++                        </div>
+ 
+                     </div>
+ 
+ 
++                    {{-- =================================================
++                        Service Selection
++                    ================================================== --}}
+ 
+-                    <div class="mt-6 flex flex-wrap gap-3">
++                    <div
++                        class="rounded-[30px] border border-border bg-surface p-7"
++                    >
+ 
++                        <div>
+ 
+-                        <button
+-                            class="rounded-2xl border border-border bg-background px-5 py-3 font-semibold text-text transition hover:border-primary">
++                            <p class="text-sm font-bold text-primary">
++                                مرحله ۱
++                            </p>
+ 
+-                            🗺 مشاهده روی نقشه
++                            <h3 class="mt-2 text-xl font-black text-text">
++                                انتخاب خدمت
++                            </h3>
+ 
+-                        </button>
++                            <p class="mt-2 text-sm leading-7 text-muted">
++                                خدمتی که می‌خواهی دریافت کنی را انتخاب کن.
++                            </p>
+ 
++                        </div>
+ 
+-                        <button
+-                            class="rounded-2xl border border-border bg-background px-5 py-3 font-semibold text-text transition hover:border-primary">
+ 
+-                            📞 تماس
++                        @if($salon->services->count())
+ 
+-                        </button>
++                            <div class="mt-6 grid gap-4 sm:grid-cols-2">
+ 
++                                @foreach($salon->services as $service)
+ 
+-                    </div>
++                                    @php
+ 
++                                        $isSelected =
++                                            (int) request('service_id')
++                                            ===
++                                            (int) $service->id;
+ 
+-                </div>
++                                        $serviceUrl = route(
++                                            'salon.public',
++                                            array_filter([
++                                                'qr_token' => $salon->qr_token,
++                                                'date' => request('date'),
++                                                'service_id' => $service->id,
++                                            ], function ($value) {
++                                                return $value !== null
++                                                    && $value !== '';
++                                            })
++                                        );
+ 
++                                    @endphp
+ 
+ 
+-                {{-- Calendar --}}
+-                <div class="grid gap-6 lg:grid-cols-2">
++                                    <a
++                                        href="{{ $serviceUrl }}#booking"
++                                        class="
++                                            block
++                                            rounded-2xl
++                                            border
++                                            p-5
++                                            transition-all
++                                            duration-200
++                                            {{
++                                                $isSelected
++                                                    ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10'
++                                                    : 'border-border bg-background hover:-translate-y-0.5 hover:border-primary/60 hover:bg-primary/5'
++                                            }}
++                                            "
++                                    >
+ 
+-                    <x-booking.calendar/>
++                                        <div
++                                            class="flex items-start justify-between gap-4"
++                                        >
+ 
+-                    <x-booking.time-picker/>
++                                            <div>
+ 
+-                </div>
++                                                <h4 class="font-black text-text">
++                                                    {{ $service->name }}
++                                                </h4>
+ 
+ 
++                                                @if($service->description)
+ 
+-                {{-- Customer Message --}}
+-                <div
+-                    class="rounded-[30px] border border-border bg-surface p-7">
++                                                    <p
++                                                        class="mt-2 text-xs leading-6 text-muted"
++                                                    >
++                                                        {{ $service->description }}
++                                                    </p>
+ 
++                                                @endif
+ 
+-                    <h3 class="text-xl font-black text-text">
++                                            </div>
+ 
+-                        📝 توضیحات برای آرایشگر
+ 
+-                    </h3>
++                                            <div class="shrink-0 text-left">
+ 
++                                                <p class="font-black text-primary">
++                                                    {{ number_format($service->price) }}
++                                                </p>
+ 
+-                    <p class="mt-2 text-sm leading-7 text-muted">
++                                                <p class="mt-1 text-xs text-muted">
++                                                    تومان
++                                                </p>
+ 
+-                        اگر درخواست خاصی درباره مدل مو یا خدمات داری اینجا بنویس.
++                                            </div>
+ 
+-                    </p>
++                                        </div>
+ 
+ 
+-                    <textarea
+-                        rows="4"
+-                        placeholder="مثلا: مدل مو مثل عکس قبلی باشه..."
+-                        class="mt-5 w-full rounded-2xl border border-border bg-background p-4 text-text outline-none transition focus:border-primary"></textarea>
++                                        <div
++                                            class="mt-4 flex items-center justify-between"
++                                        >
+ 
++                                            <span
++                                                class="text-xs font-bold text-muted"
++                                            >
++                                                ⏱ {{ $service->duration }} دقیقه
++                                            </span>
+ 
+-                </div>
+ 
++                                            <span
++                                                class="text-xs font-black text-primary"
++                                            >
++                                                {{
++                                                    $isSelected
++                                                        ? 'انتخاب شده'
++                                                        : 'انتخاب'
++                                                }}
++                                            </span>
+ 
++                                        </div>
+ 
+-            </div>
++                                    </a>
+ 
++                                @endforeach
+ 
++                            </div>
+ 
++                        @else
+ 
++                            <div
++                                class="mt-6 rounded-2xl border border-dashed border-border bg-background p-8 text-center"
++                            >
+ 
+-            {{-- Summary --}}
+-            <div>
++                                <div class="text-3xl">
++                                    ✂
++                                </div>
+ 
++                                <p class="mt-4 font-black text-text">
++                                    در حال حاضر خدمتی برای رزرو وجود ندارد.
++                                </p>
+ 
+-                <div
+-                    class="sticky top-24 rounded-[30px] border border-border bg-surface p-6 lg:p-8">
++                                <p class="mt-2 text-sm leading-6 text-muted">
++                                    لطفاً بعداً دوباره به این صفحه مراجعه کنید.
++                                </p>
+ 
++                            </div>
+ 
+-                    <h3 class="text-xl font-black text-text">
++                        @endif
+ 
+-                        خلاصه رزرو
++                    </div>
+ 
+-                    </h3>
+ 
++                    {{-- =================================================
++                        Calendar + Time
++                    ================================================== --}}
+ 
++                    <div class="grid gap-6 lg:grid-cols-2">
+ 
+-                    <div class="mt-8 space-y-5">
+ 
++                        {{-- Calendar --}}
+ 
++                        <div
++                            class="rounded-[30px] border border-border bg-surface p-7"
++                        >
+ 
+-                        <div class="flex justify-between">
++                            <p class="text-sm font-bold text-primary">
++                                مرحله ۲
++                            </p>
+ 
+-                            <span class="text-muted">
+-                                مدل انتخابی
+-                            </span>
++                            <h3 class="mt-2 text-xl font-black text-text">
++                                انتخاب تاریخ
++                            </h3>
+ 
+-                            <span class="font-bold text-text">
+-                                French Crop
+-                            </span>
++                            <p class="mt-2 text-sm leading-6 text-muted">
++                                تاریخ مناسب خودت رو انتخاب کن.
++                            </p>
++
++
++                            <div class="mt-6">
++
++                                <x-public.booking.calendar
++                                    :salon="$salon"
++                                    :selectedService="$selectedService"
++                                    :selectedDate="$selectedDate"
++                                    :jalaliDate="$jalaliDate"
++                                />
++
++                            </div>
+ 
+                         </div>
+ 
+ 
++                        {{-- Time Picker --}}
+ 
+-                        <div class="flex justify-between">
++                        <div
++                            class="rounded-[30px] border border-border bg-surface p-7"
++                        >
+ 
+-                            <span class="text-muted">
+-                                خدمت
+-                            </span>
++                            <p class="text-sm font-bold text-primary">
++                                مرحله ۳
++                            </p>
+ 
+-                            <span class="font-bold text-text">
+-                                اصلاح کلاسیک
+-                            </span>
++                            <h3 class="mt-2 text-xl font-black text-text">
++                                انتخاب ساعت
++                            </h3>
++
++                            <p class="mt-2 text-sm leading-6 text-muted">
++                                فقط ساعت‌های آزاد برای سرویس انتخابی نمایش داده می‌شوند.
++                            </p>
++
++
++                            <div class="mt-6">
++
++                                <x-public.booking.time-picker
++                                    :salon="$salon"
++                                    :selectedService="$selectedService"
++                                    :availableSlots="$availableSlots"
++                                    :selectedTime="$selectedTime"
++                                    :selectedDate="$selectedDate"
++                                    :jalaliDate="$jalaliDate"
++                                />
++
++                            </div>
+ 
+                         </div>
+ 
++                    </div>
+ 
+ 
+-                        <div class="flex justify-between">
++                    {{-- =================================================
++                        Customer Information
++                    ================================================== --}}
+ 
+-                            <span class="text-muted">
+-                                تاریخ
+-                            </span>
++                    <div
++                        class="rounded-[30px] border border-border bg-surface p-7"
++                    >
+ 
+-                            <span class="font-bold text-text">
+-                                انتخاب نشده
+-                            </span>
++                        <div>
++
++                            <p class="text-sm font-bold text-primary">
++                                مرحله ۴
++                            </p>
++
++                            <h3 class="mt-2 text-xl font-black text-text">
++                                اطلاعات شما
++                            </h3>
++
++                            <p class="mt-2 text-sm leading-7 text-muted">
++                                برای ثبت نوبت، نام و شماره موبایلت رو وارد کن.
++                            </p>
+ 
+                         </div>
+ 
+ 
++                        <div class="mt-6 grid gap-5 sm:grid-cols-2">
+ 
+ 
+-                        <div class="flex justify-between">
++                            {{-- Customer Name --}}
+ 
+-                            <span class="text-muted">
+-                                ساعت
+-                            </span>
++                            <div>
+ 
+-                            <span class="font-bold text-text">
+-                                انتخاب نشده
+-                            </span>
++                                <label
++                                    for="customer_name"
++                                    class="text-sm font-bold text-text"
++                                >
++                                    نام و نام خانوادگی
++                                </label>
++
++
++                                <input
++                                    id="customer_name"
++                                    type="text"
++                                    name="customer_name"
++                                    value="{{ old('customer_name') }}"
++                                    required
++                                    maxlength="255"
++                                    autocomplete="name"
++                                    placeholder="مثلاً محمدرضا مجیدی"
++                                    class="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3.5 text-text outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
++                                >
++
++
++                                @error('customer_name')
++
++                                <p class="mt-2 text-xs font-bold text-red-400">
++                                    {{ $message }}
++                                </p>
++
++                                @enderror
++
++                            </div>
++
++
++                            {{-- Customer Phone --}}
++
++                            <div>
++
++                                <label
++                                    for="customer_phone"
++                                    class="text-sm font-bold text-text"
++                                >
++                                    شماره موبایل
++                                </label>
++
++
++                                <input
++                                    id="customer_phone"
++                                    type="tel"
++                                    name="customer_phone"
++                                    value="{{ old('customer_phone') }}"
++                                    required
++                                    maxlength="30"
++                                    inputmode="tel"
++                                    autocomplete="tel"
++                                    dir="ltr"
++                                    placeholder="0912xxxxxxx"
++                                    class="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3.5 text-text outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
++                                >
++
++
++                                @error('customer_phone')
++
++                                <p class="mt-2 text-xs font-bold text-red-400">
++                                    {{ $message }}
++                                </p>
++
++                                @enderror
++
++                            </div>
+ 
+                         </div>
+ 
+ 
++                        {{-- Customer Note --}}
++
++                        <div class="mt-5">
++
++                            <label
++                                for="customer_note"
++                                class="text-sm font-bold text-text"
++                            >
++                                توضیحات برای آرایشگر
++                            </label>
++
++
++                            <textarea
++                                id="customer_note"
++                                name="customer_note"
++                                rows="4"
++                                maxlength="1000"
++                                placeholder="مثلاً مدل مو مثل عکس قبلی باشه..."
++                                class="mt-2 w-full rounded-2xl border border-border bg-background p-4 text-text outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
++                            >{{ old('customer_note') }}</textarea>
++
++
++                            @error('customer_note')
++
++                            <p class="mt-2 text-xs font-bold text-red-400">
++                                {{ $message }}
++                            </p>
++
++                            @enderror
++
++                        </div>
++
+                     </div>
+ 
+ 
++                    {{-- =================================================
++                        Validation Errors
++                    ================================================== --}}
+ 
++                    @if($errors->any())
+ 
+-                    {{-- Status Preview --}}
+-                    <div
+-                        class="mt-8 rounded-2xl bg-background p-4">
++                        <div
++                            class="rounded-[24px] border border-red-500/20 bg-red-500/5 p-5"
++                        >
+ 
++                            <div class="flex items-start gap-3">
+ 
+-                        <div class="flex items-center gap-3">
++                                <div class="text-lg">
++                                    ⚠️
++                                </div>
+ 
+ 
+-                            <span
+-                                class="h-3 w-3 rounded-full bg-yellow-500">
+-                            </span>
++                                <div>
+ 
++                                    <p class="font-black text-red-400">
++                                        بررسی اطلاعات رزرو
++                                    </p>
+ 
+-                            <p class="text-sm font-bold text-text">
+ 
+-                                پس از ثبت، منتظر تایید آرایشگر باشید
++                                    <ul
++                                        class="mt-2 space-y-1 text-sm leading-6 text-red-300/80"
++                                    >
+ 
+-                            </p>
++                                        @foreach($errors->all() as $error)
++
++                                            <li>
++                                                {{ $error }}
++                                            </li>
++
++                                        @endforeach
+ 
++                                    </ul>
++
++                                </div>
++
++                            </div>
+ 
+                         </div>
+ 
++                    @endif
+ 
+-                    </div>
+ 
++                    {{-- =================================================
++                        Session Error
++                    ================================================== --}}
+ 
++                    @if(session('error'))
+ 
++                        <div
++                            class="rounded-[24px] border border-red-500/20 bg-red-500/5 p-5"
++                        >
+ 
++                            <div class="flex items-start gap-3">
+ 
+-                    <button
+-                        class="mt-8 w-full rounded-2xl bg-primary py-4 text-lg font-black text-white transition hover:bg-primary-hover">
++                                <div class="text-lg">
++                                    ⚠️
++                                </div>
++
++                                <p class="text-sm font-bold leading-7 text-red-400">
++                                    {{ session('error') }}
++                                </p>
+ 
++                            </div>
+ 
+-                        ثبت نهایی رزرو
++                        </div>
+ 
++                    @endif
+ 
+-                    </button>
+ 
++                    {{-- =================================================
++                        Session Success
++                    ================================================== --}}
++
++                    @if(session('success'))
++
++                        <div
++                            class="rounded-[24px] border border-emerald-500/20 bg-emerald-500/5 p-5"
++                        >
++
++                            <div class="flex items-start gap-3">
+ 
++                                <div class="text-lg">
++                                    ✅
++                                </div>
+ 
++                                <p class="text-sm font-bold leading-7 text-emerald-400">
++                                    {{ session('success') }}
++                                </p>
++
++                            </div>
++
++                        </div>
++
++                    @endif
+ 
+                 </div>
+ 
+ 
++                {{-- =====================================================
++                    Summary
++                ====================================================== --}}
++
++                <div>
++
++                    <div class="sticky top-24">
++
++                        <x-public.booking.booking-summary
++                            :salon="$salon"
++                            :selectedService="$selectedService"
++                            :jalaliDate="$jalaliDate"
++                            :selectedTime="$selectedTime"
++                        />
++
++                    </div>
++
++                </div>
++
+             </div>
+ 
+ 
+-        </div>
++            {{-- =========================================================
++                Submit
++            ========================================================== --}}
+ 
++            <div
++                class="
++                    mt-8
++                    rounded-[30px]
++                    border
++                    border-border
++                    bg-surface
++                    p-6
++                    sm:p-7
++                "
++            >
++
++                <div
++                    class="
++                        flex
++                        flex-col
++                        gap-5
++                        sm:flex-row
++                        sm:items-center
++                        sm:justify-between
++                    "
++                >
++
++                    <div>
++
++                        <h3 class="text-lg font-black text-text">
++                            آماده‌ای نوبتت رو ثبت کنی؟
++                        </h3>
++
++                        <p class="mt-2 text-sm leading-6 text-muted">
++                            بعد از ثبت، درخواست شما برای آرایشگاه ارسال می‌شود.
++                        </p>
++
++                    </div>
+ 
+-    </div>
+ 
++                    <button
++                        type="submit"
++                        class="
++                            inline-flex
++                            w-full
++                            items-center
++                            justify-center
++                            rounded-2xl
++                            bg-primary
++                            px-8
++                            py-4
++                            text-sm
++                            font-black
++                            text-white
++                            shadow-lg
++                            shadow-primary/20
++                            transition
++                            duration-300
++                            hover:-translate-y-0.5
++                            hover:bg-primary-hover
++                            hover:shadow-xl
++                            disabled:cursor-not-allowed
++                            sm:w-auto
++                        "
++                        @disabled(
++                        !$selectedService ||
++                        !$selectedTime ||
++                        !$selectedDate
++                        )
++                    >
++                        ثبت نهایی نوبت
++                    </button>
++
++                </div>
++
++            </div>
++
++        </form>
++
++    </div>
+ 
+ </section>
+diff --git a/resources/views/components/salon/gallery.blade.php b/resources/views/components/salon/gallery.blade.php
+index 6ac3c6b..3f432e8 100644
+--- a/resources/views/components/salon/gallery.blade.php
++++ b/resources/views/components/salon/gallery.blade.php
+@@ -2,142 +2,78 @@
+ 
+     <div class="max-w-7xl px-5 mx-auto">
+ 
+-        {{-- Header --}}
+         <div class="flex items-end justify-between">
+ 
+             <div>
+ 
+                 <span class="text-sm font-bold tracking-widest uppercase text-primary">
+-
+                     Gallery
+-
+                 </span>
+ 
+                 <h2 class="mt-2 text-3xl font-black text-text lg:text-4xl">
+-
+                     آخرین نمونه‌کارها
+-
+                 </h2>
+ 
+                 <p class="mt-3 max-w-xl leading-8 text-muted">
+-
+                     چند نمونه از اصلاح‌ها و استایل‌هایی که اخیراً در آرایشگاه انجام شده است.
+-
+                 </p>
+ 
+             </div>
+ 
+         </div>
+ 
+-        {{-- Gallery --}}
+-        <div
+-            class="flex gap-5 mt-10 overflow-x-auto snap-x snap-mandatory pb-2">
++        @if($galleryItems->isNotEmpty())
+ 
+-            {{-- Card 1 --}}
+-            <div
+-                class="group relative min-w-[260px] h-[420px] overflow-hidden rounded-[30px] snap-start">
++            @php
++                $variants = [
++                    'min-w-[260px] h-[420px]',
++                    'min-w-[220px] h-[320px] mt-12',
++                    'min-w-[300px] h-[480px]',
++                    'min-w-[240px] h-[360px] mt-20',
++                ];
++            @endphp
+ 
+-                <img
+-                    src="{{ asset('images/work-1.jpg') }}"
+-                    class="object-cover w-full h-full transition duration-500 group-hover:scale-110"
+-                    alt="">
++            <div class="flex gap-5 mt-10 overflow-x-auto snap-x snap-mandatory pb-2">
+ 
+-                <div
+-                    class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
++                @foreach($galleryItems as $index => $item)
+ 
+-                <div
+-                    class="absolute bottom-5 right-5 left-5">
++                    @php
++                        $variant = $variants[$index % count($variants)];
++                    @endphp
+ 
+-                    <span
+-                        class="rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white backdrop-blur">
++                    <div
++                        class="group relative {{ $variant }} overflow-hidden rounded-[30px] snap-start"
++                    >
+ 
+-                        French Crop
++                        <img
++                            src="{{ Storage::url($item->image_path) }}"
++                            class="object-cover w-full h-full transition duration-500 group-hover:scale-110"
++                            alt="{{ $item->alt_text ?: $item->title ?: 'نمونه‌کار آرایشگاه' }}"
++                        >
+ 
+-                    </span>
++                        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+ 
+-                </div>
+-
+-            </div>
++                        @if($item->title)
+ 
+-            {{-- Card 2 --}}
+-            <div
+-                class="group relative min-w-[220px] h-[320px] mt-12 overflow-hidden rounded-[26px] snap-start">
++                            <div class="absolute bottom-5 right-5 left-5">
+ 
+-                <img
+-                    src="{{ asset('images/work-2.jpg') }}"
+-                    class="object-cover w-full h-full transition duration-500 group-hover:scale-110"
+-                    alt="">
++                                <span class="rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white backdrop-blur">
+ 
+-                <div
+-                    class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
++                                    {{ $item->title }}
+ 
+-                <div
+-                    class="absolute bottom-5 right-5">
++                                </span>
+ 
+-                    <span
+-                        class="rounded-full bg-primary px-3 py-2 text-xs font-bold text-white">
++                            </div>
+ 
+-                        Fade
++                        @endif
+ 
+-                    </span>
++                    </div>
+ 
+-                </div>
++                @endforeach
+ 
+             </div>
+ 
+-            {{-- Card 3 --}}
+-            <div
+-                class="group relative min-w-[300px] h-[480px] overflow-hidden rounded-[34px] snap-start">
+-
+-                <img
+-                    src="{{ asset('images/work-3.jpg') }}"
+-                    class="object-cover w-full h-full transition duration-500 group-hover:scale-110"
+-                    alt="">
+-
+-                <div
+-                    class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+-
+-                <div
+-                    class="absolute bottom-5 right-5">
+-
+-                    <span
+-                        class="rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white backdrop-blur">
+-
+-                        Buzz Cut
+-
+-                    </span>
+-
+-                </div>
+-
+-            </div>
+-
+-            {{-- Card 4 --}}
+-            <div
+-                class="group relative min-w-[240px] h-[360px] mt-20 overflow-hidden rounded-[28px] snap-start">
+-
+-                <img
+-                    src="{{ asset('images/Modern-Barbershop-interior-design.png') }}"
+-                    class="object-cover w-full h-full transition duration-500 group-hover:scale-110"
+-                    alt="">
+-
+-                <div
+-                    class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+-
+-                <div
+-                    class="absolute bottom-5 right-5">
+-
+-                    <span
+-                        class="rounded-full bg-primary px-4 py-2 text-sm font-bold text-white">
+-
+-                        Modern
+-
+-                    </span>
+-
+-                </div>
+-
+-            </div>
+-
+-        </div>
++        @endif
+ 
+     </div>
+ 
+diff --git a/resources/views/components/salon/hero.blade.php b/resources/views/components/salon/hero.blade.php
+index 55f4f3e..f46ffca 100644
+--- a/resources/views/components/salon/hero.blade.php
++++ b/resources/views/components/salon/hero.blade.php
+@@ -1,178 +1,256 @@
+-<header class="relative overflow-hidden bg-background" dir="rtl">
++<section
++    class="relative overflow-hidden bg-background text-text"
++    dir="rtl"
++>
+ 
+-    {{-- Background Glow --}}
+-    <div class="absolute inset-x-0 top-0 flex justify-center pointer-events-none">
+-        <div class="h-72 w-72 rounded-full bg-primary/15 blur-[140px]"></div>
+-    </div>
++    <div class="max-w-7xl mx-auto px-6 py-20 lg:py-28">
++
++        <div class="grid items-center gap-12 lg:grid-cols-2">
++
++
++            {{-- Content --}}
++
++            <div>
++
++
++                {{-- Badge --}}
++
++                <span
++                    class="
++                    inline-flex items-center gap-2
++                    rounded-full
++                    border border-primary/20
++                    bg-primary/10
++                    px-5 py-2
++                    text-sm font-bold
++                    text-primary
++                    "
++                >
++
++                    ✨ رزرو آنلاین آرایشگاه
++
++                </span>
++
++
++                {{-- Title --}}
++
++                <h1
++                    class="
++                    mt-7
++                    text-4xl
++                    font-black
++                    leading-tight
++                    text-text
++                    lg:text-6xl
++                    "
++                >
++
++                    {{ $salon->name ?? 'آرایشگاه آلیجناب' }}
++
++                </h1>
++
++
++                {{-- Description --}}
++
++                <p
++                    class="
++                    mt-6
++                    max-w-xl
++                    text-lg
++                    leading-9
++                    text-muted
++                    "
++                >
+ 
+-    <div class="relative mx-auto max-w-7xl px-5 py-8 lg:px-8">
++                    {{ $salon->description ?? 'تجربه‌ای متفاوت از اصلاح و استایل حرفه‌ای با بهترین خدمات آرایشگاهی' }}
++
++                </p>
+ 
+-        <div class="grid items-center gap-10 lg:grid-cols-2">
+ 
+-            {{-- ================= IMAGE ================= --}}
+-            {{-- ================= IMAGE ================= --}}
+-            <div class="order-1">
++                {{-- Stats --}}
+ 
+-                <div class="relative">
++                <div class="flex flex-wrap gap-4 mt-8">
+ 
+ 
+                     <div
+                         class="
+-            overflow-hidden
+-            rounded-[24px]
+-            border
+-            border-border/50
+-            bg-surface
+-            shadow-xl
+-            "
++                        rounded-2xl
++                        border border-border
++                        bg-surface
++                        px-5 py-3
++                        "
+                     >
+ 
+-                        <img
+-                            src="{{ asset('images/login.jpg') }}"
+-                            alt="آرایشگاه آلیجناب"
+-                            class="
+-                h-[480px]
+-                w-full
+-                object-cover
+-                lg:h-[580px]
+-                "
+-                        >
+-
++                        ⭐
+ 
+-                        {{-- Cinematic Overlay --}}
+-
+-                        <div
+-                            class="
+-                absolute
+-                inset-0
+-                bg-gradient-to-t
+-                from-black/70
+-                via-black/10
+-                to-transparent
+-                "
+-                        ></div>
++                        <span class="text-primary font-bold">
++                        </span>
+ 
++                        امتیاز
+ 
+                     </div>
+ 
+ 
+-                    {{-- Small Luxury Tag --}}
+-
+                     <div
+                         class="
+-            absolute
+-            bottom-6
+-            right-6
+-            rounded-2xl
+-            border
+-            border-white/10
+-            bg-black/50
+-            px-5
+-            py-3
+-            backdrop-blur-xl
+-            "
++                        rounded-2xl
++                        border border-border
++                        bg-surface
++                        px-5 py-3
++                        "
+                     >
+ 
+-                        <p class="text-sm text-white/70">
+-                            Premium Barber
+-                        </p>
++                        📍
+ 
+                     </div>
+ 
+ 
+                 </div>
+ 
+-            </div>
+-            {{-- ================= CONTENT ================= --}}
+-            <div class="order-2">
+ 
+-                {{-- Status --}}
+-                <div class="inline-flex items-center gap-2 rounded-full bg-green-500/10 px-4 py-2 text-sm font-bold text-green-400">
++                {{-- Buttons --}}
++
++                <div class="flex flex-wrap gap-4 mt-10">
++
++
++                    <a
++                        href="#booking"
++                        class="
++                        rounded-2xl
++                        bg-primary
++                        px-8 py-4
++                        font-black
++                        text-white
++                        transition
++                        hover:bg-primary/90
++                        shadow-[0_0_35px_rgba(249,115,22,.25)]
++                        "
++                    >
++
++                        رزرو نوبت
+ 
+-                    <span class="h-2.5 w-2.5 rounded-full bg-green-400 animate-pulse"></span>
++                    </a>
++
++
++                    <a
++                        href="#services"
++                        class="
++                        rounded-2xl
++                        border
++                        border-border
++                        px-8 py-4
++                        font-bold
++                        text-text
++                        transition
++                        hover:border-primary
++                        hover:text-primary
++                        "
++                    >
++
++                        مشاهده خدمات
++
++                    </a>
+ 
+-                    امروز تا ساعت ۲۲:۰۰ پذیرش داریم
+ 
+                 </div>
+ 
+-                {{-- Heading --}}
+-                <h1 class="mt-6 text-5xl font-black leading-tight text-text lg:text-7xl">
+ 
+-                    Define Your
+-                    <span class="text-primary">
+-        Signature Style
+-    </span>
++            </div>
+ 
+-                </h1>                    <span class="text-primary">
+-                        استایلی
+-                    </span>
+ 
+-                    انتخاب می‌کنی؟
++            {{-- Image --}}
+ 
+-                </h1>
++            <div class="relative">
+ 
+-                {{-- Description --}}
+-                <p class="mt-6 max-w-lg leading-8 text-muted">
+ 
+-                    مدل‌های ترند، نمونه‌کارهای آرایشگاه و نظر مشتری‌ها را ببین،
+-                    سپس زمان مناسب خودت را انتخاب و نوبتت را ثبت کن.
++                {{-- Glow --}}
+ 
+-                </p>
++                <div
++                    class="
++                    absolute
++                    -inset-5
++                    rounded-[50px]
++                    bg-primary/20
++                    blur-3xl
++                    "
++                ></div>
+ 
+-                {{-- Quick Info --}}
+-                <div class="mt-8 grid grid-cols-2 gap-4">
+ 
+-                    <div class="rounded-2xl border border-border bg-surface p-5">
++                <div
++                    class="
++                    relative
++                    overflow-hidden
++                    rounded-[45px]
++                    border
++                    border-border
++                    "
++                >
+ 
+-                        <p class="text-sm text-muted">
+-                            وضعیت
+-                        </p>
++                    <img
+ 
+-                        <p class="mt-2 font-bold text-green-400">
+-                            باز
+-                        </p>
++                        src="{{ asset('images/hero2.jpg') }}"
+ 
+-                    </div>
++                        alt="Salon"
+ 
+-                    <div class="rounded-2xl border border-border bg-surface p-5">
++                        class="
++    h-[550px]
++    w-full
++    object-cover
++    "
+ 
+-                        <p class="text-sm text-muted">
+-                            موقعیت
+-                        </p>
++                    >
+ 
+-                        <p class="mt-2 font-bold text-text">
+-                            قزوین
+-                        </p>
++                    {{-- Image Overlay --}}
+ 
+-                    </div>
++                    <div
++                        class="
++                        absolute
++                        inset-0
++                        bg-gradient-to-t
++                        from-background/90
++                        via-transparent
++                        "
++                    ></div>
+ 
+-                </div>
+ 
+-                {{-- CTA --}}
+-                <div class="mt-10 flex flex-col gap-3 sm:flex-row">
++                    {{-- Floating Card --}}
+ 
+-                    <a
+-                        href="#booking"
+-                        class="inline-flex items-center justify-center rounded-2xl bg-primary px-8 py-4 font-bold text-white transition hover:bg-primary-hover">
++                    <div
++                        class="
++                        absolute
++                        bottom-6
++                        right-6
++                        rounded-3xl
++                        border
++                        border-border
++                        bg-background/80
++                        backdrop-blur
++                        px-6 py-4
++                        "
++                    >
+ 
+-                        رزرو نوبت
++                        <p class="text-sm text-muted">
++                            متخصص استایل و اصلاح
++                        </p>
+ 
+-                    </a>
++                        <p class="mt-1 font-black text-primary">
++                            بهترین تجربه برای شما
++                        </p>
+ 
+-                    <a
+-                        href="#gallery"
+-                        class="inline-flex items-center justify-center rounded-2xl border border-border bg-surface px-8 py-4 font-bold text-text transition hover:border-primary hover:text-primary">
+ 
+-                        مشاهده نمونه‌کارها
++                    </div>
+ 
+-                    </a>
+ 
+                 </div>
+ 
++
+             </div>
+ 
++
+         </div>
+ 
++
+     </div>
+ 
+-</header>
++
++</section>
+diff --git a/resources/views/components/salon/info.blade.php b/resources/views/components/salon/info.blade.php
+index 269001a..c3d9f9c 100644
+--- a/resources/views/components/salon/info.blade.php
++++ b/resources/views/components/salon/info.blade.php
+@@ -1,12 +1,19 @@
+-<section class="py-24" dir="rtl">
++<section
++    class="py-24"
++    dir="rtl"
++>
+ 
+-    <div class="max-w-7xl mx-auto px-5">
++    <div class="mx-auto max-w-7xl px-5">
++
++        {{-- =====================================================
++            Header
++        ====================================================== --}}
+ 
+-        {{-- Header --}}
+         <div class="text-center">
+ 
+             <span
+-                class="inline-flex items-center rounded-full bg-primary/10 px-4 py-2 text-sm font-bold text-primary">
++                class="inline-flex items-center rounded-full bg-primary/10 px-4 py-2 text-sm font-bold text-primary"
++            >
+                 اطلاعات سالن
+             </span>
+ 
+@@ -14,44 +21,64 @@ class="inline-flex items-center rounded-full bg-primary/10 px-4 py-2 text-sm fon
+                 قبل از رزرو، بیشتر با ما آشنا شوید
+             </h2>
+ 
+-            <p class="mt-4 max-w-2xl mx-auto text-muted">
+-                اطلاعات تماس، ساعت کاری، امکانات و قوانین سالن را مشاهده کنید.
++            <p class="mx-auto mt-4 max-w-2xl text-muted">
++                اطلاعات تماس، ساعت کاری و امکانات سالن را مشاهده کنید.
+             </p>
+ 
+         </div>
+ 
++
++        {{-- =====================================================
++            Main Grid
++        ====================================================== --}}
++
+         <div class="mt-16 grid gap-8 lg:grid-cols-2">
+ 
+-            {{-- Information --}}
+-            <div class="rounded-[30px] border border-border bg-surface p-8">
++
++            {{-- =================================================
++                Contact Information
++            ================================================== --}}
++
++            <div
++                class="rounded-[30px] border border-border bg-surface p-8"
++            >
+ 
+                 <h3 class="text-2xl font-black text-text">
+                     اطلاعات تماس
+                 </h3>
+ 
++
+                 <div class="mt-8 space-y-6">
+ 
++
++                    {{-- Address --}}
+                     <div class="flex items-start gap-4">
+ 
+-                        <div class="text-2xl">📍</div>
++                        <div class="text-2xl">
++                            📍
++                        </div>
+ 
+-                        <div>
++                        <div class="min-w-0">
+ 
+                             <h4 class="font-bold text-text">
+                                 آدرس
+                             </h4>
+ 
+-                            <p class="text-muted mt-1">
+-                                قزوین، خیابان خیام، نبش کوچه گلستان، پلاک ۲۵
++                            <p class="mt-1 leading-7 text-muted">
++                                {{ $salon->address ?? 'آدرس ثبت نشده است.' }}
+                             </p>
+ 
+                         </div>
+ 
+                     </div>
+ 
++
++                    {{-- Phone --}}
+                     <div class="flex items-start gap-4">
+ 
+-                        <div class="text-2xl">📞</div>
++                        <div class="text-2xl">
++                            📞
++                        </div>
+ 
+                         <div>
+ 
+@@ -59,35 +86,122 @@ class="inline-flex items-center rounded-full bg-primary/10 px-4 py-2 text-sm fon
+                                 شماره تماس
+                             </h4>
+ 
+-                            <p class="text-muted mt-1">
+-                                0912 123 4567
+-                            </p>
++                            @if($salon->phone)
++
++                                <a
++                                    href="tel:{{ $salon->phone }}"
++                                    class="mt-1 inline-block text-muted transition hover:text-primary"
++                                >
++                                    {{ $salon->phone }}
++                                </a>
++
++                            @else
++
++                                <p class="mt-1 text-muted">
++                                    شماره تماس ثبت نشده است.
++                                </p>
++
++                            @endif
+ 
+                         </div>
+ 
+                     </div>
+ 
++
++                    {{-- Working Hours --}}
+                     <div class="flex items-start gap-4">
+ 
+-                        <div class="text-2xl">🕒</div>
++                        <div class="text-2xl">
++                            🕒
++                        </div>
+ 
+-                        <div>
++                        <div class="min-w-0 flex-1">
+ 
+                             <h4 class="font-bold text-text">
+                                 ساعت کاری
+                             </h4>
+ 
+-                            <p class="text-muted mt-1">
+-                                همه روزه از ۹ صبح تا ۱۰ شب
+-                            </p>
++
++                            @php
++
++                                $days = [
++                                    0 => 'شنبه',
++                                    1 => 'یکشنبه',
++                                    2 => 'دوشنبه',
++                                    3 => 'سه‌شنبه',
++                                    4 => 'چهارشنبه',
++                                    5 => 'پنجشنبه',
++                                    6 => 'جمعه',
++                                ];
++
++                            @endphp
++
++
++                            <div class="mt-3 space-y-2">
++
++                                @forelse($salon->workingHours as $workingHour)
++
++                                    <div class="flex items-center justify-between gap-4">
++
++                                        <span class="text-sm font-bold text-text">
++                                            {{ $days[$workingHour->day_of_week] ?? 'روز' }}
++                                        </span>
++
++
++                                        @if($workingHour->is_closed)
++
++                                            <span class="text-sm text-red-400">
++                                                تعطیل
++                                            </span>
++
++                                        @else
++
++                                            <span class="text-sm text-muted">
++
++                                                {{ \Carbon\Carbon::parse($workingHour->start_time)->format('H:i') }}
++
++                                                -
++
++                                                {{ \Carbon\Carbon::parse($workingHour->end_time)->format('H:i') }}
++
++                                                @if($workingHour->break_start && $workingHour->break_end)
++
++                                                    <span class="mr-2 text-xs text-zinc-500">
++                                                        استراحت:
++                                                        {{ \Carbon\Carbon::parse($workingHour->break_start)->format('H:i') }}
++                                                        -
++                                                        {{ \Carbon\Carbon::parse($workingHour->break_end)->format('H:i') }}
++                                                    </span>
++
++                                                @endif
++
++                                            </span>
++
++                                        @endif
++
++                                    </div>
++
++                                @empty
++
++                                    <p class="text-sm text-muted">
++                                        ساعت کاری ثبت نشده است.
++                                    </p>
++
++                                @endforelse
++
++                            </div>
+ 
+                         </div>
+ 
+                     </div>
+ 
++
++                    {{-- Instagram --}}
+                     <div class="flex items-start gap-4">
+ 
+-                        <div class="text-2xl">📱</div>
++                        <div class="text-2xl">
++                            📱
++                        </div>
+ 
+                         <div>
+ 
+@@ -95,9 +209,31 @@ class="inline-flex items-center rounded-full bg-primary/10 px-4 py-2 text-sm fon
+                                 اینستاگرام
+                             </h4>
+ 
+-                            <p class="text-primary mt-1">
+-                                @AlijenabBarber
+-                            </p>
++
++                            @if($salon->instagram)
++
++                                @php
++                                    $instagramUrl = str_starts_with($salon->instagram, 'http')
++                                        ? $salon->instagram
++                                        : 'https://instagram.com/' . ltrim($salon->instagram, '@');
++                                @endphp
++
++                                <a
++                                    href="{{ $instagramUrl }}"
++                                    target="_blank"
++                                    rel="noopener noreferrer"
++                                    class="mt-1 inline-block text-primary transition hover:underline"
++                                >
++                                    {{ $salon->instagram }}
++                                </a>
++
++                            @else
++
++                                <p class="mt-1 text-muted">
++                                    صفحه اینستاگرام ثبت نشده است.
++                                </p>
++
++                            @endif
+ 
+                         </div>
+ 
+@@ -107,71 +243,95 @@ class="inline-flex items-center rounded-full bg-primary/10 px-4 py-2 text-sm fon
+ 
+             </div>
+ 
+-            {{-- Features --}}
+-            <div class="rounded-[30px] border border-border bg-surface p-8">
++
++            {{-- =================================================
++                Features
++            ================================================== --}}
++
++            <div
++                class="rounded-[30px] border border-border bg-surface p-8"
++            >
+ 
+                 <h3 class="text-2xl font-black text-text">
+                     امکانات و قوانین
+                 </h3>
+ 
++
+                 <div class="mt-8 grid grid-cols-2 gap-5">
+ 
++
++                    {{-- Payment --}}
+                     <div class="rounded-2xl border border-border p-5">
+ 
+-                        <div class="text-3xl">💳</div>
++                        <div class="text-3xl">
++                            💳
++                        </div>
+ 
+                         <h4 class="mt-4 font-bold text-text">
+                             کارتخوان
+                         </h4>
+ 
+-                        <p class="mt-2 text-sm text-muted">
++                        <p class="mt-2 text-sm leading-6 text-muted">
+                             امکان پرداخت حضوری با کارت
+                         </p>
+ 
+                     </div>
+ 
++
++                    {{-- Parking --}}
+                     <div class="rounded-2xl border border-border p-5">
+ 
+-                        <div class="text-3xl">🚗</div>
++                        <div class="text-3xl">
++                            🚗
++                        </div>
+ 
+                         <h4 class="mt-4 font-bold text-text">
+                             پارکینگ
+                         </h4>
+ 
+-                        <p class="mt-2 text-sm text-muted">
++                        <p class="mt-2 text-sm leading-6 text-muted">
+                             فضای پارک در نزدیکی سالن
+                         </p>
+ 
+                     </div>
+ 
++
++                    {{-- Environment --}}
+                     <div class="rounded-2xl border border-border p-5">
+ 
+-                        <div class="text-3xl">❄️</div>
++                        <div class="text-3xl">
++                            ❄️
++                        </div>
+ 
+                         <h4 class="mt-4 font-bold text-text">
+                             محیط مجهز
+                         </h4>
+ 
+-                        <p class="mt-2 text-sm text-muted">
++                        <p class="mt-2 text-sm leading-6 text-muted">
+                             تهویه مناسب و محیط آرام
+                         </p>
+ 
+                     </div>
+ 
++
++                    {{-- Booking Rules --}}
+                     <div class="rounded-2xl border border-border p-5">
+ 
+-                        <div class="text-3xl">📅</div>
++                        <div class="text-3xl">
++                            📅
++                        </div>
+ 
+                         <h4 class="mt-4 font-bold text-text">
+                             قوانین رزرو
+                         </h4>
+ 
+-                        <p class="mt-2 text-sm text-muted">
+-                            لغو رزرو تا ۲ ساعت قبل امکان‌پذیر است.
++                        <p class="mt-2 text-sm leading-6 text-muted">
++                            لطفاً قبل از رزرو، شرایط و قوانین سالن را بررسی کنید.
+                         </p>
+ 
+                     </div>
+ 
++
+                 </div>
+ 
+             </div>
+diff --git a/resources/views/components/salon/review-card.blade.php b/resources/views/components/salon/review-card.blade.php
+index b5513d3..a8e2aef 100644
+--- a/resources/views/components/salon/review-card.blade.php
++++ b/resources/views/components/salon/review-card.blade.php
+@@ -1,53 +1,98 @@
+-<div
+-    class="rounded-[28px] border border-border bg-surface p-6 transition duration-300 hover:border-primary/40">
++{{-- resources/views/components/salon/review-card.blade.php --}}
++
++@props([
++'review',
++])
++
++@php
++    $customerName = $review->user?->full_name ?? 'مشتری';
++    $initial = mb_substr($customerName, 0, 1);
++    $rating = (int) ($review->rating ?? 0);
++@endphp
++
++<article
++    class="
++        rounded-[28px]
++        border border-border
++        bg-surface
++        p-6
++        transition duration-300
++        hover:border-primary/40
++    "
++>
+ 
+     <div class="flex items-start gap-4">
+ 
+         {{-- Avatar --}}
+         <div
+-            class="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-lg font-black text-white">
+-
+-            م
+-
++            class="
++                flex h-14 w-14 shrink-0
++                items-center justify-center
++                rounded-full
++                bg-primary
++                text-lg font-black
++                text-white
++            "
++        >
++            {{ $initial }}
+         </div>
+ 
+-        <div class="flex-1">
+ 
+-            <div class="flex items-center justify-between">
++        <div class="min-w-0 flex-1">
++
++            {{-- Header --}}
++            <div
++                class="
++                    flex flex-col gap-3
++                    sm:flex-row
++                    sm:items-start
++                    sm:justify-between
++                "
++            >
+ 
+                 <div>
+ 
+                     <h3 class="font-black text-text">
++                        {{ $customerName }}
++                    </h3>
+ 
+-                        محمد رضایی
+ 
+-                    </h3>
++                    {{-- Rating --}}
++                    <div
++                        class="mt-2 flex gap-0.5 text-yellow-400"
++                        aria-label="امتیاز {{ $rating }} از 5"
++                    >
++
++                        @for($i = 1; $i <= 5; $i++)
+ 
+-                    <div class="mt-2 text-yellow-400">
++                            <span
++                                class="{{ $i <= $rating ? 'opacity-100' : 'opacity-25' }}"
++                            >
++                                ★
++                            </span>
+ 
+-                        ★★★★★
++                        @endfor
+ 
+                     </div>
+ 
+                 </div>
+ 
+-                <span class="text-sm text-muted">
+-
+-                    ۳ روز پیش
+ 
++                {{-- Date --}}
++                <span class="text-sm text-muted">
++                    {{ $review->created_at?->diffForHumans() ?? 'به‌تازگی' }}
+                 </span>
+ 
+             </div>
+ 
+-            <p class="mt-5 leading-8 text-muted">
+-
+-                دقیقاً سر ساعت نوبتم شروع شد.
+-                مدل مویی که انتخاب کرده بودم کاملاً مطابق انتظارم اجرا شد و محیط آرایشگاه هم خیلی تمیز و مرتب بود.
+ 
++            {{-- Comment --}}
++            <p class="mt-5 leading-8 text-muted">
++                {{ $review->comment }}
+             </p>
+ 
+         </div>
+ 
+     </div>
+ 
+-</div>
++</article>
+diff --git a/resources/views/components/salon/reviews.blade.php b/resources/views/components/salon/reviews.blade.php
+index e3937a9..c691cc1 100644
+--- a/resources/views/components/salon/reviews.blade.php
++++ b/resources/views/components/salon/reviews.blade.php
+@@ -1,39 +1,210 @@
+-<section id="reviews" class="py-20 bg-background" dir="rtl">
++{{-- resources/views/components/salon/reviews.blade.php --}}
+ 
+-    <div class="max-w-4xl px-5 mx-auto">
++<section
++    id="reviews"
++    class="bg-background py-20"
++    dir="rtl"
++>
++    <div class="mx-auto max-w-5xl px-5 sm:px-6 lg:px-8">
+ 
+-        {{-- Header --}}
+-        <div class="text-center">
+-
+-            <span class="text-sm font-bold tracking-widest uppercase text-primary">
++        {{-- =====================================================
++            Header
++        ====================================================== --}}
+ 
+-                Reviews
++        <div class="text-center">
+ 
++            <span class="text-sm font-bold tracking-widest text-primary">
++                نظرات مشتریان
+             </span>
+ 
+-            <h2 class="mt-3 text-3xl font-black text-text">
+-
++            <h2 class="mt-3 text-3xl font-black text-text sm:text-4xl">
+                 مشتری‌ها چی گفتن؟
+-
+             </h2>
+ 
+-            <p class="mt-4 text-muted">
+-
++            <p class="mx-auto mt-4 max-w-2xl leading-7 text-muted">
+                 بخشی از تجربه افرادی که از این آرایشگاه نوبت گرفته‌اند.
+-
+             </p>
+ 
+         </div>
+ 
+-        <div class="mt-12 space-y-5">
+-
+-            <x-salon.review-card />
+-
+-            <x-salon.review-card />
+ 
+-            <x-salon.review-card />
+-
+-        </div>
++        {{-- =====================================================
++            Review Summary
++        ====================================================== --}}
++
++        @if($reviews->isNotEmpty())
++
++            <div
++                class="
++                    mt-10
++                    grid
++                    gap-4
++                    sm:grid-cols-2
++                "
++            >
++
++                {{-- Average Rating --}}
++                <div
++                    class="
++                        rounded-2xl
++                        border
++                        border-border
++                        bg-surface
++                        p-5
++                    "
++                >
++
++                    <div class="flex items-center gap-3">
++
++                        <div
++                            class="
++                                flex
++                                h-11
++                                w-11
++                                items-center
++                                justify-center
++                                rounded-xl
++                                bg-primary/10
++                                text-xl
++                            "
++                        >
++                            ★
++                        </div>
++
++                        <div>
++
++                            <p class="text-xs text-muted">
++                                امتیاز کاربران
++                            </p>
++
++                            <p class="mt-1 text-xl font-black text-text">
++                                {{ number_format($averageRating ?? 0, 1) }}
++                                <span class="text-sm font-bold text-muted">
++                                    از 5
++                                </span>
++                            </p>
++
++                        </div>
++
++                    </div>
++
++                </div>
++
++
++                {{-- Review Count --}}
++                <div
++                    class="
++                        rounded-2xl
++                        border
++                        border-border
++                        bg-surface
++                        p-5
++                    "
++                >
++
++                    <div class="flex items-center gap-3">
++
++                        <div
++                            class="
++                                flex
++                                h-11
++                                w-11
++                                items-center
++                                justify-center
++                                rounded-xl
++                                bg-primary/10
++                                text-xl
++                            "
++                        >
++                            💬
++                        </div>
++
++                        <div>
++
++                            <p class="text-xs text-muted">
++                                تعداد نظرات
++                            </p>
++
++                            <p class="mt-1 text-xl font-black text-text">
++                                {{ $reviewsCount ?? $reviews->count() }}
++                                <span class="text-sm font-bold text-muted">
++                                    نظر
++                                </span>
++                            </p>
++
++                        </div>
++
++                    </div>
++
++                </div>
++
++            </div>
++
++
++            {{-- =================================================
++                Reviews List
++            ================================================== --}}
++
++            <div class="mt-12 space-y-5">
++
++                @foreach($reviews as $review)
++
++                    <x-salon.review-card
++                        :review="$review"
++                    />
++
++                @endforeach
++
++            </div>
++
++
++        @else
++
++            {{-- =================================================
++                Empty State
++            ================================================== --}}
++
++            <div
++                class="
++                    mt-12
++                    rounded-[28px]
++                    border
++                    border-border
++                    bg-surface
++                    px-6
++                    py-14
++                    text-center
++                "
++            >
++
++                <div
++                    class="
++                        mx-auto
++                        flex
++                        h-16
++                        w-16
++                        items-center
++                        justify-center
++                        rounded-2xl
++                        bg-primary/10
++                        text-3xl
++                    "
++                >
++                    ★
++                </div>
++
++                <h3 class="mt-5 text-xl font-black text-text">
++                    هنوز نظری ثبت نشده است
++                </h3>
++
++                <p class="mx-auto mt-3 max-w-md leading-7 text-muted">
++                    هنوز نظری برای این سالن منتشر نشده است.
++                    بعد از ثبت و تأیید نظرات، تجربه مشتریان اینجا نمایش داده می‌شود.
++                </p>
++
++            </div>
++
++        @endif
+ 
+     </div>
+ 
+diff --git a/resources/views/components/salon/service-card.blade.php b/resources/views/components/salon/service-card.blade.php
+index 743efbe..5f8e02f 100644
+--- a/resources/views/components/salon/service-card.blade.php
++++ b/resources/views/components/salon/service-card.blade.php
+@@ -1,156 +1,177 @@
+-<div
+-    class="group overflow-hidden rounded-[30px] border border-border bg-surface transition-all duration-300 hover:-translate-y-2 hover:border-primary/40 hover:shadow-2xl">
+-
+-    {{-- Image --}}
+-    <div class="relative h-72 overflow-hidden">
+-
+-        <img
+-            src="{{ asset('images/service-3.jpg') }}"
+-            alt="اصلاح کلاسیک"
+-            class="h-full w-full object-cover transition duration-700 group-hover:scale-110">
+-
+-        {{-- Overlay --}}
+-        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"></div>
+-
+-        {{-- Badge --}}
+-        <span
+-            class="absolute top-4 right-4 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-white shadow-lg">
+-
+-            🔥 محبوب
+-
+-        </span>
+-
+-        {{-- Rating --}}
+-        <div
+-            class="absolute bottom-4 left-4 flex items-center gap-2 rounded-full bg-black/50 px-3 py-2 text-sm text-white backdrop-blur">
+-
+-            <span>⭐ 4.9</span>
+-
+-            <span class="text-white/70">
+-
+-                (۲۳۴ نظر)
+-
+-            </span>
+-
+-        </div>
+-
++{{-- resources/views/components/salon/service-card.blade.php --}}
++
++@props([
++'service',
++])
++
++<article
++    class="
++        group
++        flex
++        h-full
++        flex-col
++        rounded-[26px]
++        border
++        border-border
++        bg-surface
++        p-6
++        transition-all
++        duration-300
++        hover:-translate-y-1
++        hover:border-primary
++        hover:bg-primary/5
++    "
++>
++
++    {{-- =========================================================
++        Icon
++    ========================================================== --}}
++
++    <div
++        class="
++            flex
++            h-14
++            w-14
++            shrink-0
++            items-center
++            justify-center
++            rounded-2xl
++            bg-primary/10
++            text-3xl
++            transition-transform
++            duration-300
++            group-hover:scale-105
++        "
++    >
++        ✂️
+     </div>
+ 
+-    {{-- Content --}}
+-    <div class="p-6">
+ 
+-        {{-- Title --}}
+-        <div class="flex items-start justify-between gap-4">
++    {{-- =========================================================
++        Service Information
++    ========================================================== --}}
+ 
+-            <div>
++    <div class="flex flex-1 flex-col">
+ 
+-                <h3 class="text-2xl font-black text-text">
++        {{-- Service Name --}}
+ 
+-                    اصلاح کلاسیک
++        <h2 class="mt-6 text-xl font-black text-text">
++            {{ $service->name }}
++        </h2>
+ 
+-                </h3>
+ 
+-                <p class="mt-2 text-sm leading-7 text-muted">
++        {{-- Description --}}
+ 
+-                    اصلاح حرفه‌ای همراه با شستشو و استایل مو.
++        @if($service->description)
+ 
+-                </p>
++            <p class="mt-3 text-sm leading-7 text-muted">
++                {{ $service->description }}
++            </p>
+ 
+-            </div>
+-
+-            <div
+-                class="rounded-xl bg-primary/10 px-3 py-2 text-xs font-bold text-primary whitespace-nowrap">
+-
+-                ⏱ ۴۵ دقیقه
+-
+-            </div>
+-
+-        </div>
++        @else
+ 
+-        {{-- Tags --}}
+-        <div class="mt-6 flex flex-wrap gap-2">
++            <p class="mt-3 text-sm leading-7 text-muted">
++                دریافت این خدمت با کیفیت و زمان‌بندی مشخص.
++            </p>
+ 
+-            <span
+-                class="rounded-full bg-background px-3 py-1.5 text-xs text-muted border border-border">
++        @endif
+ 
+-                ✂ اصلاح
+ 
+-            </span>
++        {{-- =====================================================
++            Service Meta
++        ====================================================== --}}
+ 
+-            <span
+-                class="rounded-full bg-background px-3 py-1.5 text-xs text-muted border border-border">
++        <div class="mt-auto pt-6">
+ 
+-                💈 استایل
++            <div
++                class="
++                    flex
++                    items-end
++                    justify-between
++                    gap-4
++                    border-t
++                    border-border
++                    pt-5
++                "
++            >
+ 
+-            </span>
++                {{-- Duration + Price --}}
+ 
+-            <span
+-                class="rounded-full bg-background px-3 py-1.5 text-xs text-muted border border-border">
++                <div>
+ 
+-                🧴 شستشو
++                    <p class="text-sm text-muted">
++                        حدود {{ $service->duration }} دقیقه
++                    </p>
+ 
+-            </span>
++                    <p class="mt-2 text-lg font-black text-primary">
+ 
+-        </div>
++                        {{ number_format($service->price) }}
+ 
+-        {{-- Info --}}
+-        <div
+-            class="mt-6 flex items-center justify-between rounded-2xl bg-background px-4 py-3">
++                        <span class="text-xs font-bold">
++                            تومان
++                        </span>
+ 
+-            <div class="flex items-center gap-2 text-sm text-muted">
++                    </p>
+ 
+-                🔥
++                </div>
+ 
+-                <span>
+ 
+-                    ۱۲۶ رزرو موفق
++                {{-- Availability --}}
+ 
++                <span
++                    class="
++                        shrink-0
++                        rounded-full
++                        bg-primary/10
++                        px-3
++                        py-1
++                        text-sm
++                        font-black
++                        text-primary
++                    "
++                >
++                    قابل رزرو
+                 </span>
+ 
+             </div>
+ 
+-            <div class="flex items-center gap-2 text-sm text-muted">
+-
+-                💬
+ 
+-                <span>
+-
+-                    ۲۳۴ نظر
+-
+-                </span>
++            {{-- =================================================
++                Booking Action
++            ================================================== --}}
++
++            <div class="mt-5">
++
++                <a
++                    href="{{ route('salon.public', [
++                        'qr_token' => $service->salon->qr_token,
++                        'service_id' => $service->id,
++                    ]) }}#booking"
++                    class="
++                        flex
++                        w-full
++                        items-center
++                        justify-center
++                        rounded-2xl
++                        bg-primary
++                        px-5
++                        py-3
++                        text-sm
++                        font-black
++                        text-white
++                        transition
++                        duration-200
++                        hover:opacity-90
++                        active:scale-[0.98]
++                    "
++                >
++                    رزرو این خدمت
++                </a>
+ 
+             </div>
+ 
+         </div>
+ 
+-        {{-- Footer --}}
+-        <div class="mt-8 flex items-center justify-between">
+-
+-            <div>
+-
+-                <p class="text-xs text-muted">
+-
+-                    قیمت
+-
+-                </p>
+-
+-                <p class="mt-1 text-2xl font-black text-secondary">
+-
+-                    ۲۵۰,۰۰۰ تومان
+-
+-                </p>
+-
+-            </div>
+-
+-            <button
+-                class="rounded-2xl bg-primary px-6 py-3 font-bold text-white transition-all duration-300 hover:scale-105 hover:bg-primary-hover active:scale-95">
+-
+-                انتخاب سرویس
+-
+-            </button>
+-
+-        </div>
+-
+     </div>
+ 
+-</div>
++</article>
+diff --git a/resources/views/components/salon/services.blade.php b/resources/views/components/salon/services.blade.php
+index 9f5cdc8..5e6cdda 100644
+--- a/resources/views/components/salon/services.blade.php
++++ b/resources/views/components/salon/services.blade.php
+@@ -1,41 +1,94 @@
+-<div
+-    class="group cursor-pointer rounded-[26px] border border-border bg-surface p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary hover:bg-primary/5">
++{{-- resources/views/components/salon/service.blade.php --}}
+ 
+-    <div
+-        class="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-3xl">
++@props([
++'services' => collect(),
++])
+ 
+-        ✂️
++<section
++    id="services"
++    class="bg-background py-20"
++    dir="rtl"
++>
++
++    <div class="mx-auto max-w-7xl px-5 sm:px-6 lg:px-8">
++
++        {{-- Header --}}
++        <div class="text-center">
++
++            <span class="text-sm font-bold tracking-widest text-primary">
++                خدمات سالن
++            </span>
++
++            <h2 class="mt-3 text-3xl font-black text-text sm:text-4xl">
++                خدمات و قیمت‌ها
++            </h2>
++
++            <p class="mx-auto mt-4 max-w-2xl leading-7 text-muted">
++                خدمت موردنظرت را انتخاب کن و زمان مناسب خودت را برای رزرو انتخاب کن.
++            </p>
++
++        </div>
+ 
+-    </div>
+ 
+-    <h3 class="mt-6 text-xl font-black text-text">
++        {{-- Services --}}
++        @if($services->isNotEmpty())
+ 
+-        اصلاح کلاسیک
++            <div class="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+ 
+-    </h3>
++                @foreach($services as $service)
+ 
+-    <p class="mt-3 text-sm leading-7 text-muted">
++                    <x-salon.service-card
++                        :service="$service"
++                    />
+ 
+-        اصلاح و فرم‌دهی مو با استایل دلخواه.
++                @endforeach
+ 
+-    </p>
++            </div>
+ 
+-    <div
+-        class="mt-6 flex items-center justify-between border-t border-border pt-5">
++        @else
+ 
+-        <span class="text-sm text-muted">
++            {{-- Empty State --}}
++            <div
++                class="
++                    mt-12
++                    rounded-[28px]
++                    border
++                    border-border
++                    bg-surface
++                    px-6
++                    py-16
++                    text-center
++                "
++            >
+ 
+-            حدود ۳۰ دقیقه
++                <div
++                    class="
++                        mx-auto
++                        flex
++                        h-16
++                        w-16
++                        items-center
++                        justify-center
++                        rounded-2xl
++                        bg-primary/10
++                        text-3xl
++                    "
++                >
++                    ✂️
++                </div>
+ 
+-        </span>
++                <h3 class="mt-6 text-xl font-black text-text">
++                    هنوز خدمتی ثبت نشده است
++                </h3>
+ 
+-        <span
+-            class="rounded-full bg-primary/10 px-3 py-1 text-sm font-bold text-primary">
++                <p class="mx-auto mt-3 max-w-md leading-7 text-muted">
++                    در حال حاضر خدمتی برای نمایش وجود ندارد.
++                </p>
+ 
+-            انتخاب
++            </div>
+ 
+-        </span>
++        @endif
+ 
+     </div>
+ 
+-</div>
++</section>
+diff --git a/resources/views/dashboard/settings/index.blade.php b/resources/views/dashboard/settings/index.blade.php
+index 30a4721..8490db3 100644
+--- a/resources/views/dashboard/settings/index.blade.php
++++ b/resources/views/dashboard/settings/index.blade.php
+@@ -12,7 +12,9 @@
+ 
+                 <div class="flex items-center gap-2">
+ 
+-                    <span class="h-2 w-2 rounded-full bg-orange-500 shadow-[0_0_12px_rgba(249,115,22,0.8)]"></span>
++                    <span
++                        class="h-2 w-2 rounded-full bg-orange-500 shadow-[0_0_12px_rgba(249,115,22,0.8)]"
++                    ></span>
+ 
+                     <p class="text-sm font-bold text-orange-500">
+                         کنترل حساب
+@@ -59,6 +61,88 @@ class="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500"
+     </div>
+ 
+ 
++    {{-- =========================================================
++        Flash Success
++    ========================================================== --}}
++
++    @if(session('success'))
++
++        <div
++            class="mb-6 rounded-2xl border border-green-500/20 bg-green-500/5 px-5 py-4"
++        >
++
++            <div class="flex items-center gap-3">
++
++                <div
++                    class="flex h-9 w-9 items-center justify-center rounded-xl bg-green-500/10"
++                >
++
++                    <x-lucide-check-circle-2
++                        class="h-5 w-5 text-green-500"
++                    />
++
++                </div>
++
++                <p class="text-sm font-bold text-green-400">
++                    {{ session('success') }}
++                </p>
++
++            </div>
++
++        </div>
++
++    @endif
++
++
++    {{-- =========================================================
++        Validation Errors
++    ========================================================== --}}
++
++    @if($errors->any())
++
++        <div
++            class="mb-6 rounded-2xl border border-red-500/20 bg-red-500/5 px-5 py-4"
++        >
++
++            <div class="flex items-start gap-3">
++
++                <div
++                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-500/10"
++                >
++
++                    <x-lucide-circle-alert
++                        class="h-5 w-5 text-red-400"
++                    />
++
++                </div>
++
++                <div>
++
++                    <p class="text-sm font-bold text-red-400">
++                        لطفاً خطاهای فرم را بررسی کنید.
++                    </p>
++
++                    <ul class="mt-2 space-y-1">
++
++                        @foreach($errors->all() as $error)
++
++                            <li class="text-xs leading-6 text-red-300">
++                                {{ $error }}
++                            </li>
++
++                        @endforeach
++
++                    </ul>
++
++                </div>
++
++            </div>
++
++        </div>
++
++    @endif
++
++
+     {{-- =========================================================
+         Main Grid
+     ========================================================== --}}
+@@ -477,91 +561,231 @@ class="h-5 w-5 text-orange-500"
+ 
+                 </div>
+ 
++            </div>
+ 
+-                <a
+-                    href="{{ route('salon.edit') }}"
+-                    class="inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm font-bold text-zinc-300 transition hover:border-orange-500/30 hover:text-orange-400"
++
++            {{-- Salon Form --}}
++            @if($salon)
++
++                <form
++                    action="{{ route('settings.update') }}"
++                    method="POST"
++                    class="mt-6"
+                 >
+ 
+-                    <x-lucide-pencil
+-                        class="h-4 w-4"
+-                    />
++                    @csrf
+ 
+-                    ویرایش اطلاعات سالن
++                    @method('PUT')
+ 
+-                </a>
+ 
+-            </div>
++                    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+ 
++                        {{-- Name --}}
++                        <div class="sm:col-span-2 lg:col-span-3">
+ 
+-            <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
++                            <label
++                                for="name"
++                                class="mb-2 block text-xs font-bold text-zinc-500"
++                            >
++                                نام سالن
++                            </label>
++
++                            <input
++                                id="name"
++                                name="name"
++                                type="text"
++                                value="{{ old('name', $salon->name) }}"
++                                required
++                                maxlength="255"
++                                class="w-full rounded-2xl border border-zinc-800 bg-black/20 px-4 py-3 text-sm font-bold text-zinc-200 outline-none transition placeholder:text-zinc-700 focus:border-orange-500"
++                                placeholder="نام سالن"
++                            >
+ 
+-                {{-- Phone --}}
+-                <div class="rounded-2xl border border-zinc-800 bg-black/20 p-4">
++                            @error('name')
+ 
+-                    <div class="flex items-center gap-2 text-zinc-600">
++                            <p class="mt-2 text-xs text-red-400">
++                                {{ $message }}
++                            </p>
+ 
+-                        <x-lucide-phone
+-                            class="h-4 w-4"
+-                        />
++                            @enderror
+ 
+-                        <span class="text-xs">
+-                            تلفن سالن
+-                        </span>
++                        </div>
+ 
+-                    </div>
+ 
+-                    <p class="mt-3 text-sm font-bold text-zinc-200">
+-                        {{ $salon?->phone ?? 'ثبت نشده' }}
+-                    </p>
++                        {{-- Description --}}
++                        <div class="sm:col-span-2 lg:col-span-3">
+ 
+-                </div>
++                            <label
++                                for="description"
++                                class="mb-2 block text-xs font-bold text-zinc-500"
++                            >
++                                معرفی سالن
++                            </label>
++
++                            <textarea
++                                id="description"
++                                name="description"
++                                rows="4"
++                                maxlength="2000"
++                                class="w-full resize-none rounded-2xl border border-zinc-800 bg-black/20 px-4 py-3 text-sm leading-7 text-zinc-200 outline-none transition placeholder:text-zinc-700 focus:border-orange-500"
++                                placeholder="یک توضیح کوتاه درباره سالن..."
++                            >{{ old('description', $salon->description) }}</textarea>
++
++                            @error('description')
++
++                            <p class="mt-2 text-xs text-red-400">
++                                {{ $message }}
++                            </p>
+ 
++                            @enderror
++
++                            <p class="mt-2 text-[11px] text-zinc-600">
++                                این متن در Hero صفحه عمومی سالن نمایش داده می‌شود.
++                            </p>
+ 
+-                {{-- Address --}}
+-                <div class="rounded-2xl border border-zinc-800 bg-black/20 p-4">
++                        </div>
+ 
+-                    <div class="flex items-center gap-2 text-zinc-600">
+ 
+-                        <x-lucide-map-pin
+-                            class="h-4 w-4"
+-                        />
++                        {{-- Phone --}}
++                        <div>
+ 
+-                        <span class="text-xs">
+-                            آدرس
+-                        </span>
++                            <label
++                                for="phone"
++                                class="mb-2 block text-xs font-bold text-zinc-500"
++                            >
++                                تلفن سالن
++                            </label>
++
++                            <input
++                                id="phone"
++                                name="phone"
++                                type="text"
++                                value="{{ old('phone', $salon->phone) }}"
++                                maxlength="30"
++                                class="w-full rounded-2xl border border-zinc-800 bg-black/20 px-4 py-3 text-sm font-bold text-zinc-200 outline-none transition placeholder:text-zinc-700 focus:border-orange-500"
++                                placeholder="0912..."
++                            >
++
++                            @error('phone')
++
++                            <p class="mt-2 text-xs text-red-400">
++                                {{ $message }}
++                            </p>
++
++                            @enderror
++
++                        </div>
++
++
++                        {{-- Address --}}
++                        <div>
++
++                            <label
++                                for="address"
++                                class="mb-2 block text-xs font-bold text-zinc-500"
++                            >
++                                آدرس
++                            </label>
++
++                            <textarea
++                                id="address"
++                                name="address"
++                                rows="1"
++                                maxlength="1000"
++                                class="w-full resize-none rounded-2xl border border-zinc-800 bg-black/20 px-4 py-3 text-sm leading-7 text-zinc-200 outline-none transition placeholder:text-zinc-700 focus:border-orange-500"
++                                placeholder="آدرس سالن"
++                            >{{ old('address', $salon->address) }}</textarea>
++
++                            @error('address')
++
++                            <p class="mt-2 text-xs text-red-400">
++                                {{ $message }}
++                            </p>
++
++                            @enderror
++
++                        </div>
++
++
++                        {{-- Instagram --}}
++                        <div>
++
++                            <label
++                                for="instagram"
++                                class="mb-2 block text-xs font-bold text-zinc-500"
++                            >
++                                Instagram
++                            </label>
++
++                            <input
++                                id="instagram"
++                                name="instagram"
++                                type="text"
++                                value="{{ old('instagram', $salon->instagram) }}"
++                                maxlength="255"
++                                class="w-full rounded-2xl border border-zinc-800 bg-black/20 px-4 py-3 text-sm font-bold text-zinc-200 outline-none transition placeholder:text-zinc-700 focus:border-orange-500"
++                                placeholder="@username"
++                            >
++
++                            @error('instagram')
++
++                            <p class="mt-2 text-xs text-red-400">
++                                {{ $message }}
++                            </p>
++
++                            @enderror
++
++                        </div>
+ 
+                     </div>
+ 
+-                    <p class="mt-3 line-clamp-2 text-sm font-bold text-zinc-200">
+-                        {{ $salon?->address ?? 'ثبت نشده' }}
+-                    </p>
+ 
+-                </div>
++                    {{-- Save Row --}}
++                    <div class="mt-6 flex flex-col gap-3 border-t border-zinc-800 pt-5 sm:flex-row sm:items-center sm:justify-between">
+ 
++                        <div class="flex items-center gap-2 text-xs text-zinc-600">
+ 
+-                {{-- Instagram --}}
+-                <div class="rounded-2xl border border-zinc-800 bg-black/20 p-4">
++                            <x-lucide-info
++                                class="h-4 w-4"
++                            />
+ 
+-                    <div class="flex items-center gap-2 text-zinc-600">
++                            <span>
++                                تغییرات در صفحه عمومی سالن نیز نمایش داده می‌شود.
++                            </span>
+ 
+-                        <x-lucide-instagram
+-                            class="h-4 w-4"
+-                        />
++                        </div>
+ 
+-                        <span class="text-xs">
+-                            Instagram
+-                        </span>
++
++                        <button
++                            type="submit"
++                            class="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3 text-sm font-black text-black transition hover:bg-orange-400"
++                        >
++
++                            <x-lucide-save
++                                class="h-4 w-4"
++                            />
++
++                            ذخیره اطلاعات سالن
++
++                        </button>
+ 
+                     </div>
+ 
+-                    <p class="mt-3 truncate text-sm font-bold text-zinc-200">
+-                        {{ $salon?->instagram ?? 'ثبت نشده' }}
++                </form>
++
++            @else
++
++                <div
++                    class="mt-6 rounded-2xl border border-red-500/10 bg-red-500/[0.03] p-5"
++                >
++
++                    <p class="text-sm font-bold text-red-400">
++                        برای این حساب هنوز سالنی ثبت نشده است.
+                     </p>
+ 
+                 </div>
+ 
+-            </div>
++            @endif
+ 
+         </div>
+ 
+diff --git a/resources/views/salon/show.blade.php b/resources/views/salon/show.blade.php
+index 0ad26fe..f8ff4fd 100644
+--- a/resources/views/salon/show.blade.php
++++ b/resources/views/salon/show.blade.php
+@@ -1,3 +1,5 @@
++{{-- resources/views/salon/show.blade.php --}}
++
+ @extends('layouts.app')
+ 
+ @section('content')
+@@ -7,75 +9,158 @@ class="relative overflow-hidden bg-background text-text"
+         dir="rtl"
+     >
+ 
++        {{-- =====================================================
++            Background Effects
++        ====================================================== --}}
+ 
+-        {{-- Background Effects --}}
+-        <div class="absolute inset-0 -z-0 overflow-hidden">
++        <div class="pointer-events-none absolute inset-0 overflow-hidden">
+ 
+             <div
+-                class="absolute top-0 right-0 w-[500px] h-[500px] rounded-full bg-primary/10 blur-[140px]">
+-            </div>
++                class="
++                    absolute
++                    right-0
++                    top-0
++                    h-[500px]
++                    w-[500px]
++                    rounded-full
++                    bg-primary/10
++                    blur-[140px]
++                "
++            ></div>
+ 
+             <div
+-                class="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full bg-secondary/10 blur-[120px]">
+-            </div>
++                class="
++                    absolute
++                    bottom-0
++                    left-0
++                    h-[400px]
++                    w-[400px]
++                    rounded-full
++                    bg-secondary/10
++                    blur-[120px]
++                "
++            ></div>
+ 
+         </div>
+ 
+ 
+-        {{-- Hero --}}
++        {{-- =====================================================
++            Hero
++        ====================================================== --}}
++
+         <div class="relative z-10">
+-            <x-salon.hero :salon="$salon"/>
+-        </div>
+ 
++            <x-salon.hero
++                :salon="$salon"
++                :average-rating="$averageRating"
++                :reviews-count="$reviewsCount"
++            />
+ 
+-        <div
+-            class="relative z-10 px-6 py-16 mx-auto space-y-24 max-w-7xl">
++        </div>
+ 
+ 
+-            {{-- Info --}}
++        {{-- =====================================================
++            Main Public Content
++        ====================================================== --}}
++
++        <main
++            class="
++                relative
++                z-10
++                mx-auto
++                max-w-7xl
++                space-y-24
++                px-5
++                py-16
++                sm:px-6
++                lg:px-8
++            "
++        >
++
++            {{-- =================================================
++                Salon Info
++            ================================================== --}}
++
+             <section id="info">
+-                <x-salon.info :salon="$salon"/>
++
++                <x-salon.info
++                    :salon="$salon"
++                />
++
+             </section>
+ 
+ 
+-            {{-- Services --}}
++            {{-- =================================================
++                Services
++            ================================================== --}}
++
+             <section id="services">
++
+                 <x-salon.services
+-                    :services="$salon->services ?? []"/>
++                    :services="$salon->services"
++                />
++
+             </section>
+ 
+ 
+-            {{-- Gallery --}}
++            {{-- =================================================
++                Gallery
++            ================================================== --}}
++
+             <section id="gallery">
++
+                 <x-salon.gallery
+-                    :images="$salon->images ?? []"/>
++                    :gallery-items="$galleryItems"
++                />
++
+             </section>
+ 
+ 
+-            {{-- Reviews --}}
++            {{-- =================================================
++                Reviews
++            ================================================== --}}
++
+             <section id="reviews">
+-                <x-salon.reviews :reviews="$salon->reviews ?? []"
++
++                <x-salon.reviews
++                    :reviews="$reviews"
++                    :average-rating="$averageRating"
++                    :reviews-count="$reviewsCount"
+                 />
++
+             </section>
+ 
+ 
+-            {{-- Trends --}}
+-            <section id="trends">
+-                <x-salon.trends
+-                    :salon="$salon"/>
+-            </section>
++            {{-- =================================================
++                Trends
++            ================================================== --}}
+ 
++            <section id="trends">
+ 
+-        </div>
++                <x-salon.trends
++                    :salon="$salon"
++                />
+ 
++            </section>
+ 
+-        {{-- Booking --}}
+-        <section id="booking">
++        </main>
+ 
+-            <x-salon.booking :salon="$salon"/>
+ 
+-        </section>
++        {{-- =====================================================
++            Booking
++        ====================================================== --}}
++        {{-- IMPORTANT:
++             x-salon.booking خودش section#booking را دارد.
++             اینجا wrapper دیگری نساز. --}}
+ 
++        <x-salon.booking
++            :salon="$salon"
++            :selected-date="$selectedDate"
++            :jalali-date="$jalaliDate"
++            :selected-service="$selectedService"
++            :available-slots="$availableSlots"
++            :selected-time="$selectedTime"
++        />
+ 
+     </div>
+ 
+diff --git a/routes/web.php b/routes/web.php
+index 8c83c3d..4f31601 100644
+--- a/routes/web.php
++++ b/routes/web.php
+@@ -1,5 +1,7 @@
+ <?php
+ 
++use App\Http\Controllers\GalleryController;
++use App\Http\Controllers\PublicBookingController;
+ use App\Http\Controllers\PublicSalonController;
+ use Illuminate\Support\Facades\Route;
+ 
+@@ -55,6 +57,28 @@
+     PublicSalonController::class,
+     'show',
+ ])->name('salon.public');
++
++
++/*
++|--------------------------------------------------------------------------
++| Public Booking
++|--------------------------------------------------------------------------
++*/
++
++Route::post('/salon/{qr_token}/booking', [
++    PublicBookingController::class,
++    'store',
++])->name('salon.booking.store');
++
++Route::get('/salon/{qr_token}/booking', [
++    PublicBookingController::class,
++    'create',
++])->name('salon.booking.create');
++
++Route::get('/salon/{qr_token}/booking/success/{booking}', [
++    PublicBookingController::class,
++    'success',
++])->name('salon.booking.success');
+ /*
+ |--------------------------------------------------------------------------
+ | Authenticated Routes
+@@ -357,7 +381,47 @@
+                 ])->name('reject');
+ 
+             });
++        /*
++        |--------------------------------------------------------------------------
++        | Gallery
++        |--------------------------------------------------------------------------
++        */
+ 
++        Route::prefix('gallery')
++            ->name('gallery.')
++            ->group(function () {
++
++                Route::get('/', [
++                    GalleryController::class,
++                    'index'
++                ])->name('index');
++
++                Route::get('/create', [
++                    GalleryController::class,
++                    'create'
++                ])->name('create');
++
++                Route::post('/', [
++                    GalleryController::class,
++                    'store'
++                ])->name('store');
++
++                Route::get('/{galleryItem}/edit', [
++                    GalleryController::class,
++                    'edit'
++                ])->name('edit');
++
++                Route::put('/{galleryItem}', [
++                    GalleryController::class,
++                    'update'
++                ])->name('update');
++
++                Route::delete('/{galleryItem}', [
++                    GalleryController::class,
++                    'destroy'
++                ])->name('destroy');
++
++            });
+         /*
+         |--------------------------------------------------------------------------
+         | Settings

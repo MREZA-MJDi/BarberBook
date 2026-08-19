@@ -2,6 +2,12 @@
 
 @php
 
+    /*
+    |--------------------------------------------------------------------------
+    | Persian Digits
+    |--------------------------------------------------------------------------
+    */
+
     $toPersianDigits = function ($value) {
         return strtr((string) $value, [
             '0' => '۰',
@@ -17,47 +23,106 @@
         ]);
     };
 
-    $slots = $availableSlots ?? [];
+    /*
+    |--------------------------------------------------------------------------
+    | Slots
+    |--------------------------------------------------------------------------
+    */
 
-$selectedTime = $selectedTime ?? request('booking_time');
+    $slots =
+        is_array($availableSlots ?? null)
+            ? $availableSlots
+            : [];
+
+    /*
+    |--------------------------------------------------------------------------
+    | Selected Time
+    |--------------------------------------------------------------------------
+    */
+
+    $selectedTime =
+        $selectedTime ?? request('booking_time');
 
     if ($selectedTime) {
+
         if ($selectedTime instanceof \DateTimeInterface) {
-            $selectedTime = $selectedTime->format('H:i');
+
+            $selectedTime =
+                $selectedTime->format('H:i');
+
         } else {
-            $selectedTime = substr((string) $selectedTime, 0, 5);
+
+            $selectedTime =
+                substr(
+                    (string) $selectedTime,
+                    0,
+                    5
+                );
         }
     }
 
-    $selectedDateValue = $selectedDate ?? request('date');
+    /*
+    |--------------------------------------------------------------------------
+    | Selected Date
+    |--------------------------------------------------------------------------
+    */
 
-    $serviceId = $selectedService?->id;
+    $selectedDateValue =
+        $selectedDate ?? request('date');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Service
+    |--------------------------------------------------------------------------
+    */
+
+    $serviceId =
+        $selectedService?->id;
 
 @endphp
 
-<div>
 
-    <h3 class="text-xl font-black text-text">
-        انتخاب ساعت
-    </h3>
+{{-- =========================================================
+    Header
+========================================================== --}}
 
-    <p class="mt-2 text-sm text-muted">
-        فقط زمان‌های آزاد برای رزرو نمایش داده می‌شوند.
-    </p>
+<div class="flex items-start justify-between gap-4">
+
+    <div>
+
+        <h3 class="text-xl font-black text-text">
+            انتخاب ساعت
+        </h3>
+
+        <p class="mt-2 text-sm text-muted">
+            فقط زمان‌های آزاد برای رزرو نمایش داده می‌شوند.
+        </p>
+
+    </div>
+
+
+    @if($selectedService)
+
+        <div
+            class="shrink-0 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-black text-primary"
+        >
+            {{ $selectedService->duration }} دقیقه
+        </div>
+
+    @endif
 
 </div>
 
-@if($selectedService)
 
-    <div class="hidden rounded-full bg-primary/10 px-3 py-1.5 text-xs font-black text-primary sm:block">
-        {{ $selectedService->duration }} دقیقه
-    </div>
-
-@endif
+{{-- =========================================================
+    No Service
+========================================================== --}}
 
 @if(!$selectedService)
 
-    <div class="mt-6 rounded-2xl border border-dashed border-border bg-background p-8 text-center">
+    <div
+        class="mt-6 rounded-2xl border border-dashed border-border bg-background p-8 text-center"
+    >
 
         <div class="text-3xl">
             ✂
@@ -73,9 +138,16 @@ $selectedTime = $selectedTime ?? request('booking_time');
 
     </div>
 
+
+    {{-- =========================================================
+        No Available Slots
+    ========================================================== --}}
+
 @elseif(empty($slots))
 
-    <div class="mt-6 rounded-2xl border border-dashed border-border bg-background p-8 text-center">
+    <div
+        class="mt-6 rounded-2xl border border-dashed border-border bg-background p-8 text-center"
+    >
 
         <div class="text-3xl">
             🕒
@@ -86,10 +158,16 @@ $selectedTime = $selectedTime ?? request('booking_time');
         </p>
 
         <p class="mt-2 text-sm leading-6 text-muted">
-            لطفاً تاریخ دیگری را انتخاب کنید.
+            ممکن است سالن در این روز تعطیل باشد، زمان استراحت داشته باشد
+            یا همه زمان‌ها قبلاً رزرو شده باشند.
         </p>
 
     </div>
+
+
+    {{-- =========================================================
+        Slots
+    ========================================================== --}}
 
 @else
 
@@ -99,36 +177,103 @@ $selectedTime = $selectedTime ?? request('booking_time');
 
             @php
 
+                /*
+                |--------------------------------------------------------------------------
+                | Normalize Time
+                |--------------------------------------------------------------------------
+                */
+
                 if ($time instanceof \DateTimeInterface) {
-                    $timeValue = $time->format('H:i');
+
+                    $timeValue =
+                        $time->format('H:i');
+
                 } else {
-                    $timeValue = substr((string) $time, 0, 5);
+
+                    $timeValue =
+                        substr(
+                            (string) $time,
+                            0,
+                            5
+                        );
                 }
 
-                $isActive = $selectedTime === $timeValue;
+                /*
+                |--------------------------------------------------------------------------
+                | Selected
+                |--------------------------------------------------------------------------
+                */
 
-              $timeRoute = array_filter([
-             'date' => $selectedDateValue,
-             'service_id' => $serviceId,
-            'booking_time' => $timeValue,
-       ]);
+                $isActive =
+                    $selectedTime === $timeValue;
+
+                /*
+                |--------------------------------------------------------------------------
+                | URL
+                |--------------------------------------------------------------------------
+                */
+
+                $timeRoute = array_filter(
+                    [
+                        'date' =>
+                            $selectedDateValue,
+
+                        'service_id' =>
+                            $serviceId,
+
+                        'booking_time' =>
+                            $timeValue,
+                    ],
+                    function ($value) {
+                        return $value !== null
+                            && $value !== '';
+                    }
+                );
+
             @endphp
+
 
             <a
                 href="{{ route('bookings.create', $timeRoute) }}"
-                class="flex items-center justify-center rounded-2xl border py-4 text-center text-sm font-black transition-all duration-200 {{ $isActive ? 'scale-[1.03] border-primary bg-primary text-white shadow-lg shadow-primary/20' : 'border-border bg-background text-text hover:-translate-y-1 hover:border-primary hover:bg-primary/5' }}"
+                class="
+                    flex
+                    items-center
+                    justify-center
+                    rounded-2xl
+                    border
+                    py-4
+                    text-center
+                    text-sm
+                    font-black
+                    transition-all
+                    duration-200
+
+                    {{
+                        $isActive
+                            ? 'scale-[1.03] border-primary bg-primary text-white shadow-lg shadow-primary/20'
+                            : 'border-border bg-background text-text hover:-translate-y-1 hover:border-primary hover:bg-primary/5'
+                    }}
+                    "
             >
+
                 {{ $toPersianDigits($timeValue) }}
+
             </a>
 
         @endforeach
 
     </div>
 
+
+    {{-- =====================================================
+        Selected Time
+    ====================================================== --}}
+
     @if($selectedTime)
 
         <div
-            class="mt-6 flex items-center justify-between gap-4 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-4">
+            class="mt-6 flex items-center justify-between gap-4 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-4"
+        >
 
             <div>
 
@@ -142,13 +287,21 @@ $selectedTime = $selectedTime ?? request('booking_time');
 
             </div>
 
-            <div class="shrink-0 rounded-xl bg-primary px-4 py-2 text-sm font-black text-white">
+
+            <div
+                class="shrink-0 rounded-xl bg-primary px-4 py-2 text-sm font-black text-white"
+            >
                 {{ $toPersianDigits($selectedTime) }}
             </div>
 
         </div>
 
     @endif
+
+
+    {{-- =====================================================
+        Service Duration
+    ====================================================== --}}
 
     @if($selectedService)
 

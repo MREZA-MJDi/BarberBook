@@ -4,18 +4,17 @@
 
     use Morilog\Jalali\Jalalian;
 
-
     /*
     |--------------------------------------------------------------------------
     | Selected Date
     |--------------------------------------------------------------------------
     */
 
-    $currentDate = isset($selectedDate)
+    $currentDate =
+        isset($selectedDate)
         && $selectedDate instanceof \Carbon\Carbon
             ? Jalalian::fromCarbon($selectedDate)
             : Jalalian::now();
-
 
     /*
     |--------------------------------------------------------------------------
@@ -23,11 +22,10 @@
     |--------------------------------------------------------------------------
     */
 
-    $selectedJalaliDate = isset($jalaliDate)
-        && $jalaliDate
+    $selectedJalaliDate =
+        isset($jalaliDate) && $jalaliDate
             ? $jalaliDate
             : $currentDate->format('Y/m/d');
-
 
     /*
     |--------------------------------------------------------------------------
@@ -35,10 +33,11 @@
     |--------------------------------------------------------------------------
     */
 
-    $currentYear = (int) $currentDate->format('Y');
+    $currentYear =
+        (int) $currentDate->format('Y');
 
-    $currentMonth = (int) $currentDate->format('m');
-
+    $currentMonth =
+        (int) $currentDate->format('m');
 
     /*
     |--------------------------------------------------------------------------
@@ -47,7 +46,6 @@
     */
 
     $monthNames = [
-
         1  => 'فروردین',
         2  => 'اردیبهشت',
         3  => 'خرداد',
@@ -60,9 +58,7 @@
         10 => 'دی',
         11 => 'بهمن',
         12 => 'اسفند',
-
     ];
-
 
     /*
     |--------------------------------------------------------------------------
@@ -71,9 +67,7 @@
     */
 
     $toPersianDigits = function ($value) {
-
         return strtr((string) $value, [
-
             '0' => '۰',
             '1' => '۱',
             '2' => '۲',
@@ -84,11 +78,8 @@
             '7' => '۷',
             '8' => '۸',
             '9' => '۹',
-
         ]);
-
     };
-
 
     /*
     |--------------------------------------------------------------------------
@@ -97,17 +88,13 @@
     */
 
     $monthStart = Jalalian::fromFormat(
-
         'Y/m/d',
-
         sprintf(
             '%04d/%02d/01',
             $currentYear,
             $currentMonth
         )
-
     );
-
 
     /*
     |--------------------------------------------------------------------------
@@ -115,8 +102,8 @@
     |--------------------------------------------------------------------------
     */
 
-    $daysInMonth = $monthStart->getMonthDays();
-
+    $daysInMonth =
+        $monthStart->getMonthDays();
 
     /*
     |--------------------------------------------------------------------------
@@ -124,8 +111,8 @@
     |--------------------------------------------------------------------------
     */
 
-    $firstDayOfWeek = $monthStart->getDayOfWeek();
-
+    $firstDayOfWeek =
+        $monthStart->getDayOfWeek();
 
     /*
     |--------------------------------------------------------------------------
@@ -133,109 +120,83 @@
     |--------------------------------------------------------------------------
     |
     | IMPORTANT:
-    | Jalalian does NOT have copy().
+    | Never mutate $monthStart.
     |
     */
 
-    $previousMonth = Jalalian::fromFormat(
-
+    $previousMonthStart = Jalalian::fromFormat(
         'Y/m/d',
+        sprintf(
+            '%04d/%02d/01',
+            $currentYear,
+            $currentMonth
+        )
+    );
 
-        $monthStart
+    $nextMonthStart = Jalalian::fromFormat(
+        'Y/m/d',
+        sprintf(
+            '%04d/%02d/01',
+            $currentYear,
+            $currentMonth
+        )
+    );
+
+    $previousMonth =
+        $previousMonthStart
             ->subMonths(1)
-            ->format('Y/m/d')
+            ->format('Y/m/d');
 
-    );
-
-
-    $nextMonth = Jalalian::fromFormat(
-
-        'Y/m/d',
-
-        $monthStart
+    $nextMonth =
+        $nextMonthStart
             ->addMonths(1)
-            ->format('Y/m/d')
-
-    );
-
-
-    $previousMonthDate =
-        $previousMonth->format('Y/m/d');
-
-
-    $nextMonthDate =
-        $nextMonth->format('Y/m/d');
-
+            ->format('Y/m/d');
 
     /*
     |--------------------------------------------------------------------------
     | Service
     |--------------------------------------------------------------------------
-    |
-    | IMPORTANT:
-    | Calendar is allowed to render without a service.
-    |
     */
 
-    $serviceId = isset($selectedService)
-        ? $selectedService?->id
-        : request('service_id');
-
+    $serviceId =
+        isset($selectedService)
+            ? $selectedService?->id
+            : request('service_id');
 
     /*
     |--------------------------------------------------------------------------
     | Selected Time
     |--------------------------------------------------------------------------
-    |
-    | IMPORTANT:
-    | We use ONLY booking_time.
-    |
     */
 
-    $bookingTime = request('booking_time');
-
+    $bookingTime =
+        request('booking_time');
 
     /*
     |--------------------------------------------------------------------------
-    | Calendar URL Helper
+    | Calendar URL
     |--------------------------------------------------------------------------
-    |
-    | Keeps:
-    |
-    | date
-    | service_id
-    | booking_time
-    |
     */
 
     $calendarUrl = function ($date) use (
         $serviceId,
         $bookingTime
     ) {
-
         return route(
             'bookings.create',
-            array_filter([
-
-                'date' =>
-                    $date,
-
-                'service_id' =>
-                    $serviceId,
-
-                'booking_time' =>
-                    $bookingTime,
-
-            ], function ($value) {
-
-                return $value !== null
-                    && $value !== '';
-
-            })
+            array_filter(
+                [
+                    'date' => $date,
+                    'service_id' => $serviceId,
+                    'booking_time' => $bookingTime,
+                ],
+                function ($value) {
+                    return $value !== null
+                        && $value !== '';
+                }
+            )
         );
-
     };
-
 
     /*
     |--------------------------------------------------------------------------
@@ -243,13 +204,13 @@
     |--------------------------------------------------------------------------
     */
 
-    $today = Jalalian::now();
+    $today =
+        Jalalian::now();
 
     $todayJalali =
         $today->format('Y/m/d');
 
 @endphp
-
 
 
 {{-- =========================================================
@@ -258,38 +219,15 @@
 
 <div class="flex items-center justify-between gap-3">
 
-
     {{-- Previous Month --}}
 
     <a
-        href="{{ $calendarUrl($previousMonthDate) }}"
-
-        class="
-            flex
-            h-10
-            w-10
-            shrink-0
-            items-center
-            justify-center
-            rounded-xl
-            border
-            border-border
-            bg-surface
-            text-lg
-            font-black
-            text-muted
-            transition
-            hover:border-primary
-            hover:text-primary
-        "
-
+        href="{{ $calendarUrl($previousMonth) }}"
+        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-surface text-lg font-black text-muted transition hover:border-primary hover:text-primary"
         aria-label="ماه قبل"
     >
-
         →
-
     </a>
-
 
 
     {{-- Current Month --}}
@@ -297,57 +235,28 @@
     <div class="text-center">
 
         <p class="text-lg font-black text-text">
-
             {{ $monthNames[$currentMonth] }}
-
             {{ $toPersianDigits($currentYear) }}
-
         </p>
 
-
         <p class="mt-1 text-xs font-bold text-muted">
-
             تاریخ رزرو را انتخاب کنید
-
         </p>
 
     </div>
 
 
-
     {{-- Next Month --}}
 
     <a
-        href="{{ $calendarUrl($nextMonthDate) }}"
-
-        class="
-            flex
-            h-10
-            w-10
-            shrink-0
-            items-center
-            justify-center
-            rounded-xl
-            border
-            border-border
-            bg-surface
-            text-lg
-            font-black
-            text-muted
-            transition
-            hover:border-primary
-            hover:text-primary
-        "
-
+        href="{{ $calendarUrl($nextMonth) }}"
+        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-surface text-lg font-black text-muted transition hover:border-primary hover:text-primary"
         aria-label="ماه بعد"
     >
-
         ←
-
     </a>
 
 </div>
-
 
 
 {{-- =========================================================
@@ -357,7 +266,6 @@
 <div class="mt-6 grid grid-cols-7 gap-2">
 
     @foreach([
-
         'شنبه',
         'یکشنبه',
         'دوشنبه',
@@ -365,21 +273,12 @@
         'چهارشنبه',
         'پنجشنبه',
         'جمعه',
-
     ] as $day)
 
         <div
-            class="
-                py-2
-                text-center
-                text-xs
-                font-black
-                text-muted
-            "
+            class="py-2 text-center text-xs font-black text-muted"
         >
-
             {{ $day }}
-
         </div>
 
     @endforeach
@@ -387,13 +286,11 @@
 </div>
 
 
-
 {{-- =========================================================
     Days
 ========================================================== --}}
 
 <div class="grid grid-cols-7 gap-2">
-
 
     {{-- Empty cells --}}
 
@@ -408,7 +305,6 @@
     @endfor
 
 
-
     {{-- Month Days --}}
 
     @for(
@@ -420,51 +316,23 @@
         @php
 
             $dayDate = Jalalian::fromFormat(
-
                 'Y/m/d',
-
                 sprintf(
-
                     '%04d/%02d/%02d',
-
                     $currentYear,
                     $currentMonth,
                     $day
-
                 )
-
             );
-
 
             $dayValue =
                 $dayDate->format('Y/m/d');
 
-
-            /*
-            |--------------------------------------------------------------------------
-            | Selected
-            |--------------------------------------------------------------------------
-            */
-
             $isSelected =
                 $dayValue === $selectedJalaliDate;
 
-
-            /*
-            |--------------------------------------------------------------------------
-            | Today
-            |--------------------------------------------------------------------------
-            */
-
             $isToday =
                 $dayValue === $todayJalali;
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Past
-            |--------------------------------------------------------------------------
-            */
 
             $isPast =
                 $dayDate->getTimestamp()
@@ -474,37 +342,18 @@
         @endphp
 
 
-
         @if($isPast)
 
-            {{-- Past Day --}}
-
             <div
-                class="
-                    flex
-                    aspect-square
-                    items-center
-                    justify-center
-                    rounded-xl
-                    text-sm
-                    font-bold
-                    text-muted/30
-                "
+                class="flex aspect-square items-center justify-center rounded-xl text-sm font-bold text-muted/30"
             >
-
                 {{ $toPersianDigits($day) }}
-
             </div>
-
 
         @else
 
-            {{-- Available Day --}}
-
             <a
-
                 href="{{ $calendarUrl($dayValue) }}"
-
                 class="
                     group
                     relative
@@ -519,35 +368,20 @@
                     transition-all
                     duration-200
 
-                    {{ $isSelected
-
-                        ? 'border-primary bg-primary text-white shadow-lg shadow-primary/20'
-
-                        : 'border-transparent bg-surface text-text hover:border-primary/50 hover:bg-primary/5'
-
+                    {{
+                        $isSelected
+                            ? 'border-primary bg-primary text-white shadow-lg shadow-primary/20'
+                            : 'border-transparent bg-surface text-text hover:border-primary/50 hover:bg-primary/5'
                     }}
                     "
             >
 
                 {{ $toPersianDigits($day) }}
 
-
-                {{-- Today Indicator --}}
-
-                @if(
-                    $isToday
-                    && !$isSelected
-                )
+                @if($isToday && !$isSelected)
 
                     <span
-                        class="
-                            absolute
-                            bottom-1
-                            h-1
-                            w-1
-                            rounded-full
-                            bg-primary
-                        "
+                        class="absolute bottom-1 h-1 w-1 rounded-full bg-primary"
                     ></span>
 
                 @endif
@@ -561,72 +395,32 @@
 </div>
 
 
-
 {{-- =========================================================
     Selected Date
 ========================================================== --}}
 
 <div
-    class="
-        mt-6
-        rounded-2xl
-        border
-        border-primary/20
-        bg-primary/5
-        px-4
-        py-4
-    "
+    class="mt-6 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-4"
 >
 
-    <div
-        class="
-            flex
-            items-center
-            justify-between
-            gap-4
-        "
-    >
+    <div class="flex items-center justify-between gap-4">
 
         <div>
 
             <p class="text-xs font-bold text-muted">
-
                 تاریخ انتخاب‌شده
-
             </p>
 
-
-            <p
-                class="
-                    mt-1
-                    text-sm
-                    font-black
-                    text-text
-                "
-            >
-
+            <p class="mt-1 text-sm font-black text-text">
                 {{ $toPersianDigits($selectedJalaliDate) }}
-
             </p>
 
         </div>
 
-
         <div
-            class="
-                flex
-                h-10
-                w-10
-                items-center
-                justify-center
-                rounded-xl
-                bg-primary/10
-                text-lg
-            "
+            class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-lg"
         >
-
             📅
-
         </div>
 
     </div>
@@ -634,42 +428,17 @@
 </div>
 
 
-
 {{-- =========================================================
     Quick Today
 ========================================================== --}}
 
-@if(
-    $selectedJalaliDate !== $todayJalali
-)
+@if($selectedJalaliDate !== $todayJalali)
 
     <a
-
         href="{{ $calendarUrl($todayJalali) }}"
-
-        class="
-            mt-4
-            inline-flex
-            w-full
-            items-center
-            justify-center
-            rounded-xl
-            border
-            border-border
-            px-4
-            py-3
-            text-sm
-            font-black
-            text-muted
-            transition
-            hover:border-primary
-            hover:text-primary
-        "
+        class="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-border px-4 py-3 text-sm font-black text-muted transition hover:border-primary hover:text-primary"
     >
-
         برو به امروز
-
     </a>
 
 @endif
-

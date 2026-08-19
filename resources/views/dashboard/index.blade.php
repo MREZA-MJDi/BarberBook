@@ -1,8 +1,9 @@
 <x-layouts.dashboard>
 
     {{-- =========================================================
-        Welcome
+        01. Welcome
     ========================================================== --}}
+
     <section>
         <x-dashboard.welcome-card
             :salon-status="$salonStatus"
@@ -12,11 +13,12 @@
 
 
     {{-- =========================================================
-        KPI
+        02. KPI
     ========================================================== --}}
-    <section class="mt-8">
 
-        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+    <section class="mt-6 sm:mt-8">
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
             <x-dashboard.stat-card
                 title="رزرو امروز"
@@ -50,95 +52,95 @@
 
     </section>
 
-
     {{-- =========================================================
-        Next Booking + Quick Actions
+        Monthly Performance
     ========================================================== --}}
     <section class="mt-8">
 
-        <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
-
-            <x-dashboard.next-booking
-                :booking="$nextBooking"
-            />
-
-            <x-dashboard.quick-actions />
-
-        </div>
-
-    </section>
-
-
-    {{-- =========================================================
-        Today's Schedule
-    ========================================================== --}}
-    <section class="mt-8">
-
-        <x-dashboard.today-schedule
-            :bookings="$bookings"
+        <x-dashboard.monthly-performance
+            :performance="$monthlyPerformance"
         />
 
     </section>
-
-
     {{-- =========================================================
-        Activity + Analytics
+        03. Main Operations
     ========================================================== --}}
-    <section class="mt-8">
 
-        <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+    <section class="mt-6 sm:mt-8">
 
-            <x-dashboard.activity-feed
-                :activities="$recentActivities"
-            />
+        <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
 
-            <x-dashboard.revenue-chart
-                :revenue="$revenue"
-            />
+            <div class="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 sm:p-6">
 
-        </div>
-
-    </section>
-
-
-    {{-- =========================================================
-        Today's Bookings
-    ========================================================== --}}
-    <section class="mt-8">
-
-        <div class="rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
-
-            <div class="mb-6 flex items-center justify-between gap-4">
-
-                <div>
-
-                    <h2 class="text-lg font-black text-white">
-                        رزروهای امروز
-                    </h2>
-
-                    <p class="mt-1 text-sm text-zinc-500">
-                        برنامه امروز سالن
-                    </p>
-
-                </div>
-
-
-                <a
-                    href="{{ route('bookings.index') }}"
-                    class="text-sm font-bold text-orange-400 transition hover:text-orange-300"
-                >
-                    مشاهده همه
-                </a>
+                <x-dashboard.next-booking
+                    :booking="$nextBooking"
+                />
 
             </div>
 
 
-            <x-dashboard.booking-table
+            <div class="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 sm:p-6">
+
+                <x-dashboard.quick-actions />
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    {{-- =========================================================
+        04. Today's Schedule
+    ========================================================== --}}
+
+    <section class="mt-6 sm:mt-8">
+
+        <div class="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 sm:p-6">
+
+            <x-dashboard.today-schedule
                 :bookings="$bookings"
             />
 
         </div>
 
     </section>
+
+
+    {{-- =========================================================
+        05. Insights
+    ========================================================== --}}
+
+    <section class="mt-6 sm:mt-8">
+
+        <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+
+            <div class="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 sm:p-6">
+
+                <x-dashboard.activity-feed
+                    :activities="$recentActivities"
+                />
+
+            </div>
+
+
+            <div class="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 sm:p-6">
+
+                <x-dashboard.revenue-chart
+                    :revenue="$revenue"
+                />
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    {{-- =========================================================
+        End Spacing
+    ========================================================== --}}
+
+    <div class="h-2 sm:h-4"></div>
 
 </x-layouts.dashboard>

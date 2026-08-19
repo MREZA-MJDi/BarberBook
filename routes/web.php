@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\GalleryController;
+use App\Http\Controllers\PublicBookingController;
+use App\Http\Controllers\PublicSalonController;
 use Illuminate\Support\Facades\Route;
 
 // Controllers
@@ -44,7 +47,38 @@ Route::middleware('guest')->group(function () {
 
 });
 
+/*
+|--------------------------------------------------------------------------
+| Public Salon
+|--------------------------------------------------------------------------
+*/
 
+Route::get('/salon/{qr_token}', [
+    PublicSalonController::class,
+    'show',
+])->name('salon.public');
+
+
+/*
+|--------------------------------------------------------------------------
+| Public Booking
+|--------------------------------------------------------------------------
+*/
+
+Route::post('/salon/{qr_token}/booking', [
+    PublicBookingController::class,
+    'store',
+])->name('salon.booking.store');
+
+Route::get('/salon/{qr_token}/booking', [
+    PublicBookingController::class,
+    'create',
+])->name('salon.booking.create');
+
+Route::get('/salon/{qr_token}/booking/success/{booking}', [
+    PublicBookingController::class,
+    'success',
+])->name('salon.booking.success');
 /*
 |--------------------------------------------------------------------------
 | Authenticated Routes
@@ -225,11 +259,30 @@ Route::middleware('auth')->group(function () {
         | Working Hours
         |--------------------------------------------------------------------------
         */
+        /*
+        |--------------------------------------------------------------------------
+        | Working Hours
+        |--------------------------------------------------------------------------
+        */
 
-        Route::resource(
-            'working-hours',
-            WorkingHourController::class
-        );
+        Route::prefix('working-hours')
+            ->name('working-hours.')
+            ->group(function () {
+
+                // Weekly schedule
+                Route::get('/', [
+                    WorkingHourController::class,
+                    'index'
+                ])->name('index');
+
+
+                // Save complete weekly schedule
+                Route::put('/', [
+                    WorkingHourController::class,
+                    'updateWeek'
+                ])->name('update-week');
+
+            });
 
 
         /*
@@ -238,18 +291,58 @@ Route::middleware('auth')->group(function () {
         |--------------------------------------------------------------------------
         */
 
+        /*
+  |--------------------------------------------------------------------------
+  | QR
+  |--------------------------------------------------------------------------
+  */
+
         Route::prefix('qr')
             ->name('qr.')
             ->group(function () {
 
-                // QR page
+                /*
+                |--------------------------------------------------------------------------
+                | QR Page
+                |--------------------------------------------------------------------------
+                */
+
                 Route::get('/', [
                     QrController::class,
                     'index'
                 ])->name('index');
 
 
-                // Download QR
+                /*
+                |--------------------------------------------------------------------------
+                | Generate QR
+                |--------------------------------------------------------------------------
+                */
+
+                Route::post('/generate', [
+                    QrController::class,
+                    'generate'
+                ])->name('generate');
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | QR Image
+                |--------------------------------------------------------------------------
+                */
+
+                Route::get('/image', [
+                    QrController::class,
+                    'image'
+                ])->name('image');
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Download QR
+                |--------------------------------------------------------------------------
+                */
+
                 Route::get('/download', [
                     QrController::class,
                     'download'
@@ -257,22 +350,78 @@ Route::middleware('auth')->group(function () {
 
             });
 
-
         /*
         |--------------------------------------------------------------------------
         | Reviews
         |--------------------------------------------------------------------------
         */
 
-        Route::resource(
-            'reviews',
-            ReviewController::class
-        )->only([
-            'index',
-            'show'
-        ]);
+        Route::prefix('reviews')
+            ->name('reviews.')
+            ->group(function () {
+
+                // Reviews dashboard
+                Route::get('/', [
+                    ReviewController::class,
+                    'index'
+                ])->name('index');
 
 
+                // Publish review
+                Route::patch('/{review}/publish', [
+                    ReviewController::class,
+                    'publish'
+                ])->name('publish');
+
+
+                // Reject / hide review
+                Route::patch('/{review}/reject', [
+                    ReviewController::class,
+                    'reject'
+                ])->name('reject');
+
+            });
+        /*
+        |--------------------------------------------------------------------------
+        | Gallery
+        |--------------------------------------------------------------------------
+        */
+
+        Route::prefix('gallery')
+            ->name('gallery.')
+            ->group(function () {
+
+                Route::get('/', [
+                    GalleryController::class,
+                    'index'
+                ])->name('index');
+
+                Route::get('/create', [
+                    GalleryController::class,
+                    'create'
+                ])->name('create');
+
+                Route::post('/', [
+                    GalleryController::class,
+                    'store'
+                ])->name('store');
+
+                Route::get('/{galleryItem}/edit', [
+                    GalleryController::class,
+                    'edit'
+                ])->name('edit');
+
+                Route::put('/{galleryItem}', [
+                    GalleryController::class,
+                    'update'
+                ])->name('update');
+
+                Route::delete('/{galleryItem}', [
+                    GalleryController::class,
+                    'destroy'
+                ])->name('destroy');
+
+            });
         /*
         |--------------------------------------------------------------------------
         | Settings

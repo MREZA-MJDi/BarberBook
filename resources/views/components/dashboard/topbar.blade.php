@@ -1,5 +1,3 @@
-{{-- resources/views/components/dashboard/topbar.blade.php --}}
-
 @php
 
     $user = auth()->user();
@@ -10,13 +8,11 @@
 
     $initial = mb_substr($fullName, 0, 1);
 
-    $notifications = $topbarNotifications ?? collect();
+    $notifications = $notifications ?? collect();
 
-    $notificationsCount = $topbarNotificationsCount ?? 0;
-
+    $notificationsCount = $notificationsCount ?? 0;
 
 @endphp
-
 {{-- =========================================================
 Topbar
 ========================================================== --}}
@@ -146,12 +142,16 @@ Topbar
 
                     {{-- Notification List --}}
 
+                    {{-- Notification List --}}
+
                     <div class="max-h-[420px] space-y-2 overflow-y-auto p-3">
 
                         @forelse($notifications as $notification)
 
-                            <div
-                                class="flex items-start gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 transition hover:border-orange-500/30 hover:bg-zinc-900"
+                            <a
+                                href="{{ route('bookings.show', $notification['booking_id']) }}"
+                                @click="open = false"
+                                class="group flex items-start gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 transition hover:border-orange-500/40 hover:bg-zinc-900"
                             >
 
                                 {{-- Icon --}}
@@ -160,15 +160,7 @@ Topbar
                                     class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-orange-500/20 bg-orange-500/10 text-orange-500"
                                 >
 
-                                    @if(($notification['type'] ?? null) === 'success')
-
-                                        <x-lucide-check class="h-5 w-5" />
-
-                                    @else
-
-                                        <x-lucide-calendar-days class="h-5 w-5" />
-
-                                    @endif
+                                    <x-lucide-calendar-days class="h-5 w-5" />
 
                                 </div>
 
@@ -177,25 +169,104 @@ Topbar
 
                                 <div class="min-w-0 flex-1">
 
-                                    <p class="text-sm font-bold text-white">
-                                        {{ $notification['title'] ?? 'اعلان جدید' }}
-                                    </p>
+                                    <div class="flex items-start justify-between gap-2">
+
+                                        <p class="text-sm font-bold text-white">
+                                            {{ $notification['title'] ?? 'رزرو جدید' }}
+                                        </p>
+
+                                        <span
+                                            class="mt-1 h-2 w-2 shrink-0 rounded-full bg-orange-500"
+                                        ></span>
+
+                                    </div>
+
 
                                     <p class="mt-1 text-xs leading-5 text-zinc-400">
                                         {{ $notification['message'] ?? '' }}
                                     </p>
 
-                                    @if(!empty($notification['time']))
 
-                                        <span class="mt-2 block text-[11px] text-zinc-600">
-                                        {{ $notification['time'] }}
-                                    </span>
+                                    {{-- Booking Info --}}
+
+                                    @if(isset($notification['date']) || isset($notification['time']))
+
+                                        <div class="mt-2 flex items-center gap-3">
+
+                                            @if(isset($notification['date']))
+
+                                                <span
+                                                    class="inline-flex items-center gap-1 text-[11px] text-zinc-500"
+                                                >
+
+                                <x-lucide-calendar
+                                    class="h-3.5 w-3.5"
+                                />
+
+                                {{ $notification['date'] }}
+
+                            </span>
+
+                                            @endif
+
+
+                                            @if(isset($notification['time']))
+
+                                                <span
+                                                    class="inline-flex items-center gap-1 text-[11px] font-bold text-orange-400"
+                                                >
+
+                                <x-lucide-clock
+                                    class="h-3.5 w-3.5"
+                                />
+
+                                {{ $notification['time'] }}
+
+                            </span>
+
+                                            @endif
+
+                                        </div>
 
                                     @endif
 
+
+                                    {{-- Footer --}}
+
+                                    <div class="mt-2 flex items-center justify-between">
+
+                                        @if(!empty($notification['created_at']))
+
+                                            <span class="text-[10px] text-zinc-600">
+                            {{ $notification['created_at'] }}
+                        </span>
+
+                                        @elseif(!empty($notification['time']))
+
+                                            <span class="text-[10px] text-zinc-600">
+                            {{ $notification['time'] }}
+                        </span>
+
+                                        @endif
+
+
+                                        <span
+                                            class="flex items-center gap-1 text-[10px] font-bold text-zinc-600 transition group-hover:text-orange-400"
+                                        >
+
+                        مشاهده رزرو
+
+                        <x-lucide-arrow-left
+                            class="h-3 w-3"
+                        />
+
+                    </span>
+
+                                    </div>
+
                                 </div>
 
-                            </div>
+                            </a>
 
                         @empty
 
@@ -209,9 +280,11 @@ Topbar
 
                                 </div>
 
+
                                 <p class="mt-3 text-sm font-semibold text-zinc-400">
                                     اعلان جدیدی وجود ندارد.
                                 </p>
+
 
                                 <p class="mt-1 text-xs text-zinc-600">
                                     وقتی رزرو جدیدی ثبت شود اینجا نمایش داده می‌شود.
@@ -222,7 +295,6 @@ Topbar
                         @endforelse
 
                     </div>
-
 
                     {{-- Footer --}}
 

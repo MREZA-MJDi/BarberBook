@@ -1,3 +1,5 @@
+{{-- resources/views/salon/show.blade.php --}}
+
 @extends('layouts.app')
 
 @section('content')
@@ -7,75 +9,158 @@
         dir="rtl"
     >
 
+        {{-- =====================================================
+            Background Effects
+        ====================================================== --}}
 
-        {{-- Background Effects --}}
-        <div class="absolute inset-0 -z-0 overflow-hidden">
-
-            <div
-                class="absolute top-0 right-0 w-[500px] h-[500px] rounded-full bg-primary/10 blur-[140px]">
-            </div>
+        <div class="pointer-events-none absolute inset-0 overflow-hidden">
 
             <div
-                class="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full bg-secondary/10 blur-[120px]">
-            </div>
+                class="
+                    absolute
+                    right-0
+                    top-0
+                    h-[500px]
+                    w-[500px]
+                    rounded-full
+                    bg-primary/10
+                    blur-[140px]
+                "
+            ></div>
+
+            <div
+                class="
+                    absolute
+                    bottom-0
+                    left-0
+                    h-[400px]
+                    w-[400px]
+                    rounded-full
+                    bg-secondary/10
+                    blur-[120px]
+                "
+            ></div>
 
         </div>
 
 
-        {{-- Hero --}}
+        {{-- =====================================================
+            Hero
+        ====================================================== --}}
+
         <div class="relative z-10">
-            <x-salon.hero :salon="$salon"/>
+
+            @include('salon.hero', [
+                'salon' => $salon,
+                'averageRating' => $averageRating,
+                'reviewsCount' => $reviewsCount,
+            ])
+
         </div>
 
 
-        <div
-            class="relative z-10 px-6 py-16 mx-auto space-y-24 max-w-7xl">
+        {{-- =====================================================
+            Main Public Content
+        ====================================================== --}}
 
+        <main
+            class="
+                relative
+                z-10
+                mx-auto
+                max-w-7xl
+                space-y-24
+                px-5
+                py-16
+                sm:px-6
+                lg:px-8
+            "
+        >
 
-            {{-- Info --}}
+            {{-- =================================================
+                Salon Info
+            ================================================== --}}
+
             <section id="info">
-                <x-salon.info :salon="$salon"/>
-            </section>
 
-
-            {{-- Services --}}
-            <section id="services">
-                <x-salon.services
-                    :services="$salon->services ?? []"/>
-            </section>
-
-
-            {{-- Gallery --}}
-            <section id="gallery">
-                <x-salon.gallery
-                    :images="$salon->images ?? []"/>
-            </section>
-
-
-            {{-- Reviews --}}
-            <section id="reviews">
-                <x-salon.reviews :reviews="$salon->reviews ?? []"
+                <x-salon.info
+                    :salon="$salon"
                 />
+
             </section>
 
 
-            {{-- Trends --}}
+            {{-- =================================================
+                Services
+            ================================================== --}}
+
+            <section id="services">
+
+                <x-salon.services
+                    :services="$salon->services"
+                />
+
+            </section>
+
+
+            {{-- =================================================
+                Gallery
+            ================================================== --}}
+
+            <section id="gallery">
+
+                <x-salon.gallery
+                    :gallery-items="$galleryItems"
+                />
+
+            </section>
+
+
+            {{-- =================================================
+                Reviews
+            ================================================== --}}
+
+            <section id="reviews">
+
+                <x-salon.reviews
+                    :reviews="$reviews"
+                    :average-rating="$averageRating"
+                    :reviews-count="$reviewsCount"
+                />
+
+            </section>
+
+
+            {{-- =================================================
+                Trends
+            ================================================== --}}
+
             <section id="trends">
+
                 <x-salon.trends
-                    :salon="$salon"/>
+                    :salon="$salon"
+                />
+
             </section>
 
+        </main>
 
-        </div>
 
+        {{-- =====================================================
+            Booking
+        ====================================================== --}}
+        {{-- IMPORTANT:
+             x-salon.booking خودش section#booking را دارد.
+             اینجا wrapper دیگری نساز. --}}
 
-        {{-- Booking --}}
-        <section id="booking">
-
-            <x-salon.booking :salon="$salon"/>
-
-        </section>
-
+        <x-salon.booking
+            :salon="$salon"
+            :selected-date="$selectedDate"
+            :jalali-date="$jalaliDate"
+            :selected-service="$selectedService"
+            :available-slots="$availableSlots"
+            :selected-time="$selectedTime"
+        />
 
     </div>
 

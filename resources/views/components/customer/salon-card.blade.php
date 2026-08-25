@@ -21,9 +21,9 @@
 
     $reviewsCount = $salon?->reviews_count ?? 0;
 
-    $url = $salon?->qr_token
-        ? route('salon.public', $salon->qr_token)
-        : '#';
+   $url = $salon?->slug
+    ? route('salon.public', ['salon' => $salon->slug])
+    : '#';
 @endphp
 
 <article

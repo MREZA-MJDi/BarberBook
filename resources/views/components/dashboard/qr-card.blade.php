@@ -297,7 +297,7 @@
                                 text-zinc-300
                             "
                         >
-                            {{ route('salon.public', $salon->qr_token) }}
+                            {{ route('salon.public', ['salon' => $salon->slug]) }}
                         </p>
 
                     </div>
@@ -338,7 +338,7 @@
                 {{-- Open Public Page --}}
 
                 <a
-                    href="{{ route('salon.public', $salon->qr_token) }}"
+                    href="{{ route('salon.public', ['salon' => $salon->slug]) }}"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="

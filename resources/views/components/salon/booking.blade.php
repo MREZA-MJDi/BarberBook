@@ -1,31 +1,98 @@
 {{-- resources/views/components/salon/booking.blade.php --}}
 
 @php
+
+    /*
+    |--------------------------------------------------------------------------
+    | Booking State
+    |--------------------------------------------------------------------------
+    */
+
     $services = $salon?->services ?? collect();
 
     $selectedService = $selectedService ?? null;
     $selectedDate = $selectedDate ?? null;
     $selectedTime = $selectedTime ?? null;
-    $jalaliDate = $jalaliDate ?? null;
+    $jalaliDate = $jalaliDate ?? request('date');
     $availableSlots = $availableSlots ?? [];
 
-    $hasService = (bool) $selectedService;
-    $hasDate = (bool) $selectedDate;
-    $hasTime = (bool) $selectedTime;
+    /*
+    |--------------------------------------------------------------------------
+    | Current Selection
+    |--------------------------------------------------------------------------
+    */
+
+    $serviceId =
+        $selectedService?->id
+        ?? request('service_id');
+
+    $bookingTime =
+        $selectedTime
+        ?? request('booking_time');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Selected Date
+    |--------------------------------------------------------------------------
+    |
+    | URL / UI date:
+    | 1405/06/04
+    |
+    | POST date:
+    | 2026-08-26
+    |
+    */
+
+    $bookingDate =
+        $selectedDate instanceof \Carbon\Carbon
+            ? $selectedDate->format('Y-m-d')
+            : null;
+
+    /*
+    |--------------------------------------------------------------------------
+    | Customer State
+    |--------------------------------------------------------------------------
+    */
+
+    $customerName =
+        old('customer_name');
+
+    $customerPhone =
+        old('customer_phone');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Step State
+    |--------------------------------------------------------------------------
+    */
+
+    $hasService =
+        (bool) $selectedService;
+
+    $hasDate =
+        (bool) $selectedDate;
+
+    $hasTime =
+        (bool) $bookingTime;
+
+    $hasCustomer =
+        filled($customerName)
+        && filled($customerPhone);
+
 @endphp
 
 
 <section
     id="booking"
-    class="scroll-mt-20 bg-background py-10 sm:py-12 lg:py-14"
+    class="scroll-mt-20 overflow-hidden bg-background py-10 sm:py-12 lg:py-14"
     dir="rtl"
 >
 
-    <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+    <div class="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
 
 
         {{-- =========================================================
-            Booking Header
+            Header
         ========================================================== --}}
 
         <div class="mx-auto mb-7 max-w-3xl text-center">
@@ -47,9 +114,13 @@
                     sm:text-xs
                 "
             >
-                <x-lucide-calendar-plus class="h-3.5 w-3.5" />
+
+                <x-lucide-calendar-plus class="h-3.5 w-3.5"/>
+
                 رزرو آنلاین
+
             </span>
+
 
             <h2
                 class="
@@ -63,6 +134,7 @@
             >
                 نوبتت رو همین‌جا رزرو کن
             </h2>
+
 
             <p
                 class="
@@ -86,6 +158,7 @@
 
         <div
             class="
+                w-full
                 overflow-hidden
                 rounded-[28px]
                 border
@@ -155,32 +228,21 @@
                         <div class="flex items-center gap-2 px-2 sm:px-3">
 
                             <span
-                                class="
-                                    flex
-                                    h-7
-                                    w-7
-                                    shrink-0
-                                    items-center
-                                    justify-center
-                                    rounded-full
-                                    text-[11px]
-                                    font-black
-                                    {{ $hasService
-                                        ? 'bg-primary text-white'
-                                        : 'bg-background text-muted'
-                                    }}
-                                    "
+                                @class([
+                                    'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-black',
+                                    'bg-primary text-white' => $hasService,
+                                    'bg-background text-muted' => !$hasService,
+                                ])
                             >
                                 ۲
                             </span>
 
                             <span
-                                class="
-                                    text-[11px]
-                                    font-bold
-                                    sm:text-xs
-                                    {{ $hasService ? 'text-text' : 'text-muted' }}
-                                    "
+                                @class([
+                                    'text-[11px] font-bold sm:text-xs',
+                                    'text-text' => $hasService,
+                                    'text-muted' => !$hasService,
+                                ])
                             >
                                 تاریخ
                             </span>
@@ -196,32 +258,21 @@
                         <div class="flex items-center gap-2 px-2 sm:px-3">
 
                             <span
-                                class="
-                                    flex
-                                    h-7
-                                    w-7
-                                    shrink-0
-                                    items-center
-                                    justify-center
-                                    rounded-full
-                                    text-[11px]
-                                    font-black
-                                    {{ $hasDate
-                                        ? 'bg-primary text-white'
-                                        : 'bg-background text-muted'
-                                    }}
-                                    "
+                                @class([
+                                    'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-black',
+                                    'bg-primary text-white' => $hasDate,
+                                    'bg-background text-muted' => !$hasDate,
+                                ])
                             >
                                 ۳
                             </span>
 
                             <span
-                                class="
-                                    text-[11px]
-                                    font-bold
-                                    sm:text-xs
-                                    {{ $hasDate ? 'text-text' : 'text-muted' }}
-                                    "
+                                @class([
+                                    'text-[11px] font-bold sm:text-xs',
+                                    'text-text' => $hasDate,
+                                    'text-muted' => !$hasDate,
+                                ])
                             >
                                 ساعت
                             </span>
@@ -237,32 +288,21 @@
                         <div class="flex items-center gap-2 px-2 sm:px-3">
 
                             <span
-                                class="
-                                    flex
-                                    h-7
-                                    w-7
-                                    shrink-0
-                                    items-center
-                                    justify-center
-                                    rounded-full
-                                    text-[11px]
-                                    font-black
-                                    {{ $hasTime
-                                        ? 'bg-primary text-white'
-                                        : 'bg-background text-muted'
-                                    }}
-                                    "
+                                @class([
+                                    'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-black',
+                                    'bg-primary text-white' => $hasTime,
+                                    'bg-background text-muted' => !$hasTime,
+                                ])
                             >
                                 ۴
                             </span>
 
                             <span
-                                class="
-                                    text-[11px]
-                                    font-bold
-                                    sm:text-xs
-                                    {{ $hasTime ? 'text-text' : 'text-muted' }}
-                                    "
+                                @class([
+                                    'text-[11px] font-bold sm:text-xs',
+                                    'text-text' => $hasTime,
+                                    'text-muted' => !$hasTime,
+                                ])
                             >
                                 اطلاعات
                             </span>
@@ -278,24 +318,22 @@
                         <div class="flex items-center gap-2 px-2 sm:px-3">
 
                             <span
-                                class="
-                                    flex
-                                    h-7
-                                    w-7
-                                    shrink-0
-                                    items-center
-                                    justify-center
-                                    rounded-full
-                                    bg-background
-                                    text-[11px]
-                                    font-black
-                                    text-muted
-                                "
+                                @class([
+                                    'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-black',
+                                    'bg-primary text-white' => $hasCustomer,
+                                    'bg-background text-muted' => !$hasCustomer,
+                                ])
                             >
                                 ۵
                             </span>
 
-                            <span class="text-[11px] font-bold text-muted sm:text-xs">
+                            <span
+                                @class([
+                                    'text-[11px] font-bold sm:text-xs',
+                                    'text-text' => $hasCustomer,
+                                    'text-muted' => !$hasCustomer,
+                                ])
+                            >
                                 تأیید
                             </span>
 
@@ -327,7 +365,7 @@
 
                     <div class="min-w-0">
 
-                        <div class="flex items-center gap-2">
+                        <div class="flex min-w-0 items-center gap-2">
 
                             <span
                                 class="
@@ -342,13 +380,12 @@
                                     text-primary
                                 "
                             >
-
-                                <x-lucide-store class="h-4 w-4" />
-
+                                <x-lucide-store class="h-4 w-4"/>
                             </span>
 
                             <p
                                 class="
+                                    min-w-0
                                     truncate
                                     text-sm
                                     font-black
@@ -367,6 +404,7 @@
                                 class="
                                     mt-2
                                     flex
+                                    min-w-0
                                     items-center
                                     gap-1.5
                                     truncate
@@ -376,9 +414,11 @@
                                 "
                             >
 
-                                <x-lucide-map-pin class="h-3.5 w-3.5 shrink-0" />
+                                <x-lucide-map-pin class="h-3.5 w-3.5 shrink-0"/>
 
-                                {{ $salon->address }}
+                                <span class="truncate">
+                                    {{ $salon->address }}
+                                </span>
 
                             </p>
 
@@ -412,7 +452,7 @@
                                 "
                             >
 
-                                <x-lucide-phone class="h-3.5 w-3.5" />
+                                <x-lucide-phone class="h-3.5 w-3.5"/>
 
                                 تماس
 
@@ -446,7 +486,7 @@
                                 "
                             >
 
-                                <x-lucide-map class="h-3.5 w-3.5" />
+                                <x-lucide-map class="h-3.5 w-3.5"/>
 
                                 نقشه
 
@@ -468,31 +508,34 @@
             <form
                 method="POST"
                 action="{{ route('salon.booking.store', [
-                    'qr_token' => $salon->qr_token,
+                    'salon' => $salon->slug,
                 ]) }}"
+                class="w-full"
             >
 
                 @csrf
 
 
-                {{-- Keep existing booking values --}}
+                {{-- =================================================
+                    Single Source Of Truth For POST Values
+                ================================================== --}}
 
                 <input
                     type="hidden"
                     name="service_id"
-                    value="{{ $selectedService?->id }}"
+                    value="{{ $serviceId }}"
                 >
 
                 <input
                     type="hidden"
                     name="booking_date"
-                    value="{{ $selectedDate?->format('Y-m-d') }}"
+                    value="{{ $bookingDate }}"
                 >
 
                 <input
                     type="hidden"
                     name="booking_time"
-                    value="{{ $selectedTime }}"
+                    value="{{ $bookingTime }}"
                 >
 
 
@@ -547,7 +590,7 @@
                                 "
                             >
 
-                                <x-lucide-check class="h-3 w-3" />
+                                <x-lucide-check class="h-3 w-3"/>
 
                                 انتخاب شده
 
@@ -574,19 +617,19 @@
                                 @php
 
                                     $isSelected =
-                                        (int) request('service_id') ===
+                                        (int) $serviceId ===
                                         (int) $service->id;
 
                                     $serviceUrl = route(
                                         'salon.public',
                                         array_filter([
-                                            'qr_token' => $salon->qr_token,
+                                            'salon' => $salon->slug,
                                             'date' => request('date') ?: $jalaliDate,
                                             'service_id' => $service->id,
-                                            'booking_time' => request('booking_time'),
+                                            'booking_time' => $bookingTime,
                                         ], function ($value) {
-                                            return $value !== null &&
-                                                $value !== '';
+                                            return $value !== null
+                                                && $value !== '';
                                         })
                                     );
 
@@ -595,19 +638,13 @@
 
                                 <a
                                     href="{{ $serviceUrl }}#booking"
-                                    class="
-                                        group
-                                        rounded-2xl
-                                        border
-                                        p-3.5
-                                        transition
-                                        duration-200
-                                        sm:p-4
-                                        {{ $isSelected
-                                            ? 'border-primary bg-primary/5 shadow-sm shadow-primary/10'
-                                            : 'border-border bg-background hover:border-primary/40 hover:bg-primary/5'
-                                        }}
-                                        "
+                                    @class([
+                                        'group rounded-2xl border p-3.5 transition duration-200 sm:p-4',
+                                        'border-primary bg-primary/5 shadow-sm shadow-primary/10'
+                                            => $isSelected,
+                                        'border-border bg-background hover:border-primary/40 hover:bg-primary/5'
+                                            => !$isSelected,
+                                    ])
                                 >
 
                                     <div
@@ -622,15 +659,11 @@
                                         <div class="min-w-0">
 
                                             <h4
-                                                class="
-                                                    truncate
-                                                    text-sm
-                                                    font-black
-                                                    {{ $isSelected
-                                                        ? 'text-primary'
-                                                        : 'text-text'
-                                                    }}
-                                                    "
+                                                @class([
+                                                    'truncate text-sm font-black',
+                                                    'text-primary' => $isSelected,
+                                                    'text-text' => !$isSelected,
+                                                ])
                                             >
                                                 {{ $service->name }}
                                             </h4>
@@ -691,21 +724,17 @@
                                             "
                                         >
 
-                                            <x-lucide-clock-3 class="h-3 w-3" />
+                                            <x-lucide-clock-3 class="h-3 w-3"/>
 
                                             {{ $service->duration }} دقیقه
 
                                         </span>
 
 
-                                        <span
-                                            class="
-                                                text-[10px]
-                                                font-black
-                                                text-primary
-                                            "
-                                        >
+                                        <span class="text-[10px] font-black text-primary">
+
                                             {{ $isSelected ? 'انتخاب شده' : 'انتخاب' }}
+
                                         </span>
 
                                     </div>
@@ -766,6 +795,7 @@
 
                     <section
                         class="
+                            min-w-0
                             border-b
                             border-border
                             px-4
@@ -794,7 +824,7 @@
                         </div>
 
 
-                        <div class="overflow-hidden">
+                        <div class="min-w-0 overflow-hidden">
 
                             <x-public.booking.calendar
                                 :salon="$salon"
@@ -812,6 +842,7 @@
 
                     <section
                         class="
+                            min-w-0
                             px-4
                             py-5
                             sm:px-5
@@ -836,7 +867,7 @@
                         </div>
 
 
-                        <div class="overflow-hidden">
+                        <div class="min-w-0 overflow-hidden">
 
                             <x-public.booking.time-picker
                                 :salon="$salon"
@@ -1004,6 +1035,7 @@
                                 class="text-xs font-bold text-text"
                             >
                                 توضیحات
+
                                 <span class="font-normal text-muted">
                                     (اختیاری)
                                 </span>
@@ -1108,14 +1140,12 @@
                             "
                         >
 
-                            <x-lucide-clipboard-check class="h-4 w-4" />
+                            <x-lucide-clipboard-check class="h-4 w-4"/>
 
                         </div>
 
                     </div>
 
-
-                    {{-- Summary --}}
 
                     <div
                         class="
@@ -1269,12 +1299,12 @@
                         "
                         @disabled(
                         !$selectedService ||
-                        !$selectedTime ||
-                        !$selectedDate
+                        !$bookingDate ||
+                        !$bookingTime
                         )
                     >
 
-                        <x-lucide-calendar-check-2 class="h-5 w-5" />
+                        <x-lucide-calendar-check-2 class="h-5 w-5"/>
 
                         ثبت نهایی نوبت
 

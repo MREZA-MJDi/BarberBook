@@ -6,40 +6,60 @@
 
     /*
     |--------------------------------------------------------------------------
-    | Current Date
-    |--------------------------------------------------------------------------
-    */
-
-    $currentDate =
-        isset($selectedDate)
-        && $selectedDate instanceof \Carbon\Carbon
-            ? Jalalian::fromCarbon($selectedDate)
-            : Jalalian::now();
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Selected Jalali Date
+    | Resolve Selected Jalali Date
     |--------------------------------------------------------------------------
     */
 
     $selectedJalaliDate =
         $jalaliDate
         ?? request('date')
-        ?? $currentDate->format('Y/m/d');
+        ?? (
+            isset($selectedDate) &&
+            $selectedDate instanceof \Carbon\Carbon
+                ? Jalalian::fromCarbon($selectedDate)->format('Y/m/d')
+                : Jalalian::now()->format('Y/m/d')
+        );
 
 
     /*
     |--------------------------------------------------------------------------
-    | Current Year / Month
+    | Normalize Jalali Date
     |--------------------------------------------------------------------------
     */
 
+    try {
+
+        $selectedJalalian =
+            Jalalian::fromFormat(
+                'Y/m/d',
+                str_replace('-', '/', $selectedJalaliDate)
+            );
+
+    } catch (\Throwable $e) {
+
+        $selectedJalalian =
+            Jalalian::now();
+
+        $selectedJalaliDate =
+            $selectedJalalian->format('Y/m/d');
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Current Calendar Month
+    |--------------------------------------------------------------------------
+    |
+    | The selected date is the source of truth.
+    |
+    */
+
     $currentYear =
-        (int) $currentDate->format('Y');
+        (int) $selectedJalalian->format('Y');
 
     $currentMonth =
-        (int) $currentDate->format('m');
+        (int) $selectedJalalian->format('m');
 
 
     /*
@@ -49,6 +69,7 @@
     */
 
     $monthNames = [
+
         1  => 'فروردین',
         2  => 'اردیبهشت',
         3  => 'خرداد',
@@ -61,6 +82,7 @@
         10 => 'دی',
         11 => 'بهمن',
         12 => 'اسفند',
+
     ];
 
 
@@ -92,7 +114,7 @@
 
     /*
     |--------------------------------------------------------------------------
-    | Month Start
+    | Current Month Start
     |--------------------------------------------------------------------------
     */
 
@@ -121,10 +143,23 @@
     |--------------------------------------------------------------------------
     | First Day Of Week
     |--------------------------------------------------------------------------
+    |
+    | Morilog/Jalali uses:
+    |
+    | 0 = Saturday
+    | 1 = Sunday
+    | 2 = Monday
+    | 3 = Tuesday
+    | 4 = Wednesday
+    | 5 = Thursday
+    | 6 = Friday
+    |
+    | Which exactly matches our Persian calendar grid.
+    |
     */
 
     $firstDayOfWeek =
-        $monthStart->getDayOfWeek();
+        (int) $monthStart->getDayOfWeek();
 
 
     /*
@@ -133,35 +168,14 @@
     |--------------------------------------------------------------------------
     */
 
-    $previousMonthStart =
-        Jalalian::fromFormat(
-            'Y/m/d',
-            sprintf(
-                '%04d/%02d/01',
-                $currentYear,
-                $currentMonth
-            )
-        );
-
-    $nextMonthStart =
-        Jalalian::fromFormat(
-            'Y/m/d',
-            sprintf(
-                '%04d/%02d/01',
-                $currentYear,
-                $currentMonth
-            )
-        );
-
-
     $previousMonth =
-        $previousMonthStart
+        $monthStart
             ->subMonths(1)
             ->format('Y/m/d');
 
 
     $nextMonth =
-        $nextMonthStart
+        $monthStart
             ->addMonths(1)
             ->format('Y/m/d');
 
@@ -184,7 +198,8 @@
     */
 
     $bookingTime =
-        request('booking_time');
+        $selectedTime
+        ?? request('booking_time');
 
 
     /*
@@ -201,11 +216,6 @@
     |--------------------------------------------------------------------------
     | Calendar URL
     |--------------------------------------------------------------------------
-    |
-    | New public URL:
-    |
-    | /salon/{slug}
-    |
     */
 
     $calendarUrl = function ($date) use (
@@ -218,6 +228,7 @@
             'salon.public',
             array_filter(
                 [
+
                     'salon' =>
                         $salonSlug,
 
@@ -239,6 +250,7 @@
                 }
             )
         );
+
     };
 
 
@@ -251,28 +263,51 @@
     $today =
         Jalalian::now();
 
+
     $todayJalali =
         $today->format('Y/m/d');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Selected Date Object
+    |--------------------------------------------------------------------------
+    */
+
+    $selectedDateObject =
+        $selectedJalalian;
+
 
 @endphp
 
 
-<div
+<section
     class="
         rounded-[30px]
         border
         border-border
         bg-surface
-        p-6
-        sm:p-7
+        p-4
+        sm:p-6
+        lg:p-7
     "
+    aria-label="تقویم انتخاب تاریخ"
 >
+
 
     {{-- =========================================================
         Header
     ========================================================== --}}
 
-    <div class="flex items-center justify-between gap-3">
+    <div
+        class="
+            flex
+            items-center
+            justify-between
+            gap-2
+            sm:gap-3
+        "
+    >
 
         {{-- Previous Month --}}
 
@@ -296,6 +331,7 @@
                 transition
                 hover:border-primary
                 hover:text-primary
+                active:scale-95
             "
         >
             →
@@ -304,9 +340,16 @@
 
         {{-- Current Month --}}
 
-        <div class="text-center">
+        <div class="min-w-0 text-center">
 
-            <p class="text-lg font-black text-text">
+            <p
+                class="
+                    text-base
+                    font-black
+                    text-text
+                    sm:text-lg
+                "
+            >
 
                 {{ $monthNames[$currentMonth] }}
 
@@ -314,7 +357,15 @@
 
             </p>
 
-            <p class="mt-1 text-xs font-bold text-muted">
+            <p
+                class="
+                    mt-1
+                    text-[10px]
+                    font-bold
+                    text-muted
+                    sm:text-xs
+                "
+            >
                 تاریخ رزرو را انتخاب کنید
             </p>
 
@@ -343,6 +394,7 @@
                 transition
                 hover:border-primary
                 hover:text-primary
+                active:scale-95
             "
         >
             ←
@@ -355,7 +407,16 @@
         Week Days
     ========================================================== --}}
 
-    <div class="mt-6 grid grid-cols-7 gap-2">
+    <div
+        class="
+            mt-5
+            grid
+            grid-cols-7
+            gap-1
+            sm:mt-6
+            sm:gap-2
+        "
+    >
 
         @foreach([
             'شنبه',
@@ -371,9 +432,10 @@
                 class="
                     py-2
                     text-center
-                    text-[11px]
+                    text-[9px]
                     font-black
                     text-muted
+                    sm:text-[11px]
                     sm:text-xs
                 "
             >
@@ -389,7 +451,14 @@
         Days
     ========================================================== --}}
 
-    <div class="grid grid-cols-7 gap-2">
+    <div
+        class="
+            grid
+            grid-cols-7
+            gap-1
+            sm:gap-2
+        "
+    >
 
         {{-- Empty Cells --}}
 
@@ -399,7 +468,13 @@
             $i++
         )
 
-            <div class="aspect-square"></div>
+            <div
+                class="
+                    min-h-10
+                    sm:min-h-11
+                "
+                aria-hidden="true"
+            ></div>
 
         @endfor
 
@@ -438,6 +513,12 @@
                     $dayValue === $todayJalali;
 
 
+                /*
+                |--------------------------------------------------------------------------
+                | Past Date
+                |--------------------------------------------------------------------------
+                */
+
                 $isPast =
                     $dayDate->getTimestamp()
                     <
@@ -453,14 +534,17 @@
                 <div
                     class="
                         flex
-                        aspect-square
+                        min-h-10
                         items-center
                         justify-center
                         rounded-xl
-                        text-sm
+                        text-xs
                         font-bold
                         text-muted/30
+                        sm:min-h-11
+                        sm:text-sm
                     "
+                    aria-disabled="true"
                 >
 
                     {{ $toPersianDigits($day) }}
@@ -475,13 +559,15 @@
                     href="{{ $calendarUrl($dayValue) }}#booking"
                     aria-label="انتخاب تاریخ {{ $dayValue }}"
                     @class([
-                        'group relative flex aspect-square items-center justify-center rounded-xl border text-sm font-black transition-all duration-200',
+
+                        'group relative flex min-h-10 items-center justify-center rounded-xl border text-xs font-black transition-all duration-200 active:scale-95 sm:min-h-11 sm:text-sm',
 
                         'border-primary bg-primary text-white shadow-lg shadow-primary/20'
                             => $isSelected,
 
                         'border-transparent bg-background text-text hover:border-primary/50 hover:bg-primary/5'
                             => !$isSelected,
+
                     ])
                 >
 
@@ -498,7 +584,9 @@
                                 w-1
                                 rounded-full
                                 bg-primary
+                                sm:bottom-1.5
                             "
+                            aria-hidden="true"
                         ></span>
 
                     @endif
@@ -518,13 +606,16 @@
 
     <div
         class="
-            mt-6
+            mt-5
             rounded-2xl
             border
             border-primary/20
             bg-primary/5
-            px-4
-            py-4
+            px-3
+            py-3.5
+            sm:mt-6
+            sm:px-4
+            sm:py-4
         "
     >
 
@@ -533,17 +624,25 @@
                 flex
                 items-center
                 justify-between
-                gap-4
+                gap-3
             "
         >
 
-            <div>
+            <div class="min-w-0">
 
-                <p class="text-xs font-bold text-muted">
+                <p class="text-[10px] font-bold text-muted sm:text-xs">
                     تاریخ انتخاب‌شده
                 </p>
 
-                <p class="mt-1 text-sm font-black text-text">
+                <p
+                    class="
+                        mt-1
+                        text-xs
+                        font-black
+                        text-text
+                        sm:text-sm
+                    "
+                >
                     {{ $toPersianDigits($selectedJalaliDate) }}
                 </p>
 
@@ -553,14 +652,19 @@
             <div
                 class="
                     flex
-                    h-10
-                    w-10
+                    h-9
+                    w-9
+                    shrink-0
                     items-center
                     justify-center
                     rounded-xl
                     bg-primary/10
-                    text-lg
+                    text-base
+                    sm:h-10
+                    sm:w-10
+                    sm:text-lg
                 "
+                aria-hidden="true"
             >
                 📅
             </div>
@@ -579,7 +683,7 @@
         <a
             href="{{ $calendarUrl($todayJalali) }}#booking"
             class="
-                mt-4
+                mt-3
                 inline-flex
                 w-full
                 items-center
@@ -589,12 +693,15 @@
                 border-border
                 px-4
                 py-3
-                text-sm
+                text-xs
                 font-black
                 text-muted
                 transition
                 hover:border-primary
                 hover:text-primary
+                active:scale-[0.99]
+                sm:mt-4
+                sm:text-sm
             "
         >
             برو به امروز
@@ -602,4 +709,5 @@
 
     @endif
 
-</div>
+
+</section>

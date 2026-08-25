@@ -474,7 +474,7 @@
                     >
 
                         <a
-                            href="{{ route('salon.public', ['qr_token' => $salon->qr_token]) }}"
+                            href="{{ route('salon.public', ['salon' => $salon->slug]) }}"
                             class="
                                 inline-flex
                                 items-center

@@ -1,112 +1,58 @@
-{{-- resources/views/components/customer/empty-state.blade.php --}}
-
 @props([
-'icon' => '📭',
 'title' => 'موردی پیدا نشد',
 'description' => null,
-'actionUrl' => null,
-'actionText' => null,
+'icon' => 'inbox',
 ])
 
 <div
     {{ $attributes->merge([
-        'class' => '
-            rounded-[28px]
-            border
-            border-border
-            bg-surface
-            px-6
-            py-14
-            text-center
-        ',
+        'class' => 'flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/40 px-6 py-12 text-center sm:py-16',
     ]) }}
 >
 
-    {{-- =========================================================
-        Icon
-    ========================================================== --}}
+    {{-- Icon --}}
 
     <div
-        class="
-            mx-auto
-            flex
-            h-16
-            w-16
-            items-center
-            justify-center
-            rounded-2xl
-            bg-primary/10
-            text-3xl
-        "
+        class="flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-950 text-zinc-600"
     >
-        {{ $icon }}
+
+        <x-dynamic-component
+            :component="'lucide-' . $icon"
+            class="h-6 w-6"
+        />
+
     </div>
 
 
-    {{-- =========================================================
-        Title
-    ========================================================== --}}
+    {{-- Title --}}
 
-    <h3
-        class="
-            mt-5
-            text-xl
-            font-black
-            text-text
-        "
-    >
+    <h3 class="mt-5 text-base font-black text-white sm:text-lg">
+
         {{ $title }}
+
     </h3>
 
 
-    {{-- =========================================================
-        Description
-    ========================================================== --}}
+    {{-- Description --}}
 
     @if($description)
 
-        <p
-            class="
-                mx-auto
-                mt-3
-                max-w-md
-                leading-7
-                text-muted
-            "
-        >
+        <p class="mt-2 max-w-md text-sm leading-6 text-zinc-500">
+
             {{ $description }}
+
         </p>
 
     @endif
 
 
-    {{-- =========================================================
-        Action
-    ========================================================== --}}
+    {{-- Action --}}
 
-    @if($actionUrl && $actionText)
+    @if(isset($action))
 
-        <div class="mt-6">
+        <div class="mt-5">
 
-            <a
-                href="{{ $actionUrl }}"
-                class="
-                    inline-flex
-                    items-center
-                    justify-center
-                    rounded-2xl
-                    bg-primary
-                    px-6
-                    py-3.5
-                    text-sm
-                    font-black
-                    text-white
-                    transition
-                    hover:bg-primary-hover
-                "
-            >
-                {{ $actionText }}
-            </a>
+            {{ $action }}
 
         </div>
 

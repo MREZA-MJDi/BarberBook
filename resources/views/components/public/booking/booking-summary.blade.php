@@ -483,41 +483,5 @@
         Submit
     ===================================================================== --}}
 
-    <div class="mt-8">
-
-
-        <button
-            type="submit"
-            class="
-                inline-flex
-                w-full
-                items-center
-                justify-center
-                rounded-2xl
-                bg-primary
-                px-8
-                py-4
-                text-base
-                font-black
-                text-white
-                shadow-lg
-                shadow-primary/20
-                transition
-                hover:-translate-y-1
-                hover:bg-primary-hover
-                disabled:cursor-not-allowed
-                disabled:opacity-50
-            "
-            @disabled(!$isReady)
-        >
-            ثبت نهایی نوبت
-        </button>
-
-
-        <p class="mt-3 text-center text-xs leading-6 text-muted">
-            با ثبت نوبت، درخواست شما برای آرایشگر ارسال می‌شود.
-        </p>
-
-    </div>
 
 </div>

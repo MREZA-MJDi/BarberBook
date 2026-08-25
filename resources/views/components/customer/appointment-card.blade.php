@@ -1,603 +1,253 @@
-{{-- resources/views/components/customer/appointment-card.blade.php --}}
-
 @props([
 'booking',
 ])
 
 @php
-    /*
-    |--------------------------------------------------------------------------
-    | Status
-    |--------------------------------------------------------------------------
-    */
 
-    $statusMap = [
-        'pending' => [
-            'label' => 'در انتظار تأیید',
-            'class' => 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-            'dot'   => 'bg-amber-400',
-        ],
+    $status = $booking?->status ?? 'pending';
 
-        'approved' => [
-            'label' => 'تأیید شده',
-            'class' => 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-            'dot'   => 'bg-emerald-400',
-        ],
-
-        'completed' => [
-            'label' => 'انجام شده',
-            'class' => 'bg-primary/10 text-primary border-primary/20',
-            'dot'   => 'bg-primary',
-        ],
-
-        'rejected' => [
-            'label' => 'رد شده',
-            'class' => 'bg-red-500/10 text-red-400 border-red-500/20',
-            'dot'   => 'bg-red-400',
-        ],
-
-        'cancelled' => [
-            'label' => 'لغو شده',
-            'class' => 'bg-slate-500/10 text-slate-400 border-slate-500/20',
-            'dot'   => 'bg-slate-400',
-        ],
-    ];
-
-    $status = $statusMap[$booking->status] ?? [
-        'label' => 'نامشخص',
-        'class' => 'bg-slate-500/10 text-slate-400 border-slate-500/20',
-        'dot'   => 'bg-slate-400',
-    ];
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Review State
-    |--------------------------------------------------------------------------
-    */
-
-    $canReview =
-        $booking->status === 'completed'
-        && !$booking->review;
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Date
-    |--------------------------------------------------------------------------
-    */
-
-    $bookingDate = $booking->booking_date
+    $date = $booking?->booking_date
         ? \Carbon\Carbon::parse($booking->booking_date)
-        : null;
+            ->locale('fa')
+            ->translatedFormat('j F Y')
+        : '---';
 
+    $time = $booking?->booking_time
+        ? \Carbon\Carbon::parse($booking->booking_time)->format('H:i')
+        : '---';
 
-    /*
-    |--------------------------------------------------------------------------
-    | Time
-    |--------------------------------------------------------------------------
-    */
+    $serviceName = $booking?->service?->name ?? 'خدمت';
 
-    $bookingTime = $booking->booking_time
-        ? substr((string) $booking->booking_time, 0, 5)
-        : null;
+    $salonName = $booking?->salon?->name ?? 'آرایشگاه';
 
+    $price = $booking?->final_price;
 
-    /*
-    |--------------------------------------------------------------------------
-    | Persian Digits
-    |--------------------------------------------------------------------------
-    */
-
-    $toPersianDigits = function ($value) {
-        return strtr((string) $value, [
-            '0' => '۰',
-            '1' => '۱',
-            '2' => '۲',
-            '3' => '۳',
-            '4' => '۴',
-            '5' => '۵',
-            '6' => '۶',
-            '7' => '۷',
-            '8' => '۸',
-            '9' => '۹',
-        ]);
-    };
 @endphp
-
 
 <article
     {{ $attributes->merge([
-        'class' => '
-            group
-            overflow-hidden
-            rounded-[28px]
-            border
-            border-border
-            bg-surface
-            transition
-            duration-300
-            hover:border-primary/30
-            hover:shadow-[0_20px_60px_rgba(0,0,0,.08)]
-        ',
+        'class' => 'group overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 transition duration-300 hover:border-orange-500/30',
     ]) }}
 >
 
-    {{-- =========================================================
-        Top Accent
-    ========================================================== --}}
+    {{-- Header --}}
 
-    <div
-        class="h-1 w-full bg-gradient-to-l from-primary/80 via-primary/30 to-transparent"
-    ></div>
+    <div class="flex items-start justify-between gap-4 border-b border-zinc-800 p-4 sm:p-5">
+
+        <div class="flex min-w-0 items-center gap-3">
+
+            {{-- Icon --}}
+
+            <div
+                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-orange-500/20 bg-orange-500/10 text-orange-500"
+            >
+
+                <x-lucide-calendar-days class="h-5 w-5" />
+
+            </div>
 
 
-    <div class="p-5 sm:p-6">
-
-        {{-- =====================================================
-            Header
-        ====================================================== --}}
-
-        <div
-            class="
-                flex
-                flex-col
-                gap-4
-                sm:flex-row
-                sm:items-start
-                sm:justify-between
-            "
-        >
+            {{-- Salon / Service --}}
 
             <div class="min-w-0">
 
-                {{-- Salon --}}
-                <div class="flex min-w-0 items-center gap-3">
+                <h3 class="truncate text-sm font-black text-white sm:text-base">
 
-                    <div
-                        class="
-                            flex
-                            h-11
-                            w-11
-                            shrink-0
-                            items-center
-                            justify-center
-                            rounded-2xl
-                            bg-primary/10
-                            text-lg
-                            text-primary
-                        "
-                    >
-                        ✂️
-                    </div>
+                    {{ $serviceName }}
 
-                    <div class="min-w-0">
+                </h3>
 
-                        <h3
-                            class="
-                                truncate
-                                text-base
-                                font-black
-                                text-text
-                            "
-                        >
-                            {{ $booking->salon?->name ?? 'آرایشگاه' }}
-                        </h3>
+                <p class="mt-1 truncate text-xs text-zinc-500">
 
-                        <p class="mt-1 text-xs text-muted">
-                            رزرو نوبت
-                        </p>
+                    {{ $salonName }}
 
-                    </div>
-
-                </div>
+                </p>
 
             </div>
-
-
-            {{-- Status --}}
-            <span
-                class="
-                    inline-flex
-                    w-fit
-                    shrink-0
-                    items-center
-                    gap-2
-                    rounded-full
-                    border
-                    px-3
-                    py-1.5
-                    text-xs
-                    font-black
-                    {{ $status['class'] }}
-                    "
-            >
-
-                <span
-                    class="h-1.5 w-1.5 rounded-full {{ $status['dot'] }}"
-                ></span>
-
-                {{ $status['label'] }}
-
-            </span>
 
         </div>
 
 
-        {{-- =====================================================
-            Service
-        ====================================================== --}}
+        {{-- Status --}}
+
+        <div class="shrink-0">
+
+            <x-customer.appointment-status
+                :status="$status"
+            />
+
+        </div>
+
+    </div>
+
+
+    {{-- Details --}}
+
+    <div class="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 sm:p-5">
+
+        {{-- Date --}}
 
         <div
-            class="
-                mt-6
-                rounded-2xl
-                border
-                border-border
-                bg-background
-                p-4
-            "
+            class="rounded-xl border border-zinc-800 bg-zinc-950/60 p-3"
         >
 
-            <div class="flex items-center justify-between gap-4">
+            <div class="flex items-center gap-2 text-zinc-500">
 
-                <div class="min-w-0">
+                <x-lucide-calendar
+                    class="h-4 w-4"
+                />
 
-                    <p class="text-xs font-bold text-muted">
-                        خدمت
-                    </p>
+                <span class="text-[11px]">
+                    تاریخ
+                </span>
 
-                    <p
-                        class="
-                            mt-1
-                            truncate
-                            text-base
-                            font-black
-                            text-text
-                        "
-                    >
-                        {{ $booking->service?->name ?? 'خدمت رزرو شده' }}
-                    </p>
+            </div>
 
-                </div>
+            <p class="mt-2 text-sm font-bold text-white">
+
+                {{ $date }}
+
+            </p>
+
+        </div>
 
 
-                @if($booking->duration_minutes)
+        {{-- Time --}}
 
-                    <div
-                        class="
-                            shrink-0
-                            rounded-xl
-                            bg-primary/10
-                            px-3
-                            py-2
-                            text-xs
-                            font-black
-                            text-primary
-                        "
-                    >
-                        {{ $toPersianDigits($booking->duration_minutes) }}
-                        دقیقه
-                    </div>
+        <div
+            class="rounded-xl border border-zinc-800 bg-zinc-950/60 p-3"
+        >
+
+            <div class="flex items-center gap-2 text-zinc-500">
+
+                <x-lucide-clock
+                    class="h-4 w-4"
+                />
+
+                <span class="text-[11px]">
+                    ساعت
+                </span>
+
+            </div>
+
+            <p class="mt-2 text-sm font-bold text-white">
+
+                {{ $time }}
+
+            </p>
+
+        </div>
+
+
+        {{-- Price --}}
+
+        <div
+            class="col-span-2 rounded-xl border border-zinc-800 bg-zinc-950/60 p-3 sm:col-span-1"
+        >
+
+            <div class="flex items-center gap-2 text-zinc-500">
+
+                <x-lucide-wallet
+                    class="h-4 w-4"
+                />
+
+                <span class="text-[11px]">
+                    مبلغ
+                </span>
+
+            </div>
+
+            <p class="mt-2 text-sm font-bold text-white">
+
+                @if($price !== null)
+
+                    {{ number_format((float) $price) }}
+
+                    <span class="text-[10px] font-normal text-zinc-500">
+                        تومان
+                    </span>
+
+                @else
+
+                    ---
 
                 @endif
 
-            </div>
+            </p>
 
         </div>
 
+    </div>
 
-        {{-- =====================================================
-            Booking Details
-        ====================================================== --}}
 
-        <div
-            class="
-                mt-5
-                grid
-                grid-cols-2
-                gap-3
-                sm:grid-cols-4
-            "
-        >
+    {{-- Reference --}}
 
-            {{-- Date --}}
+    @if($booking?->reference_code)
+
+        <div class="px-4 sm:px-5">
+
             <div
-                class="
-                    rounded-2xl
-                    border
-                    border-border
-                    bg-background
-                    p-4
-                "
+                class="flex items-center justify-between gap-3 rounded-xl border border-dashed border-zinc-800 bg-zinc-950/40 px-3 py-2.5"
             >
 
-                <p class="text-[11px] font-bold text-muted">
-                    تاریخ
-                </p>
-
-                <p
-                    class="
-                        mt-1.5
-                        text-sm
-                        font-black
-                        text-text
-                    "
-                >
-                    @if($bookingDate)
-
-                        {{ $toPersianDigits($bookingDate->format('Y/m/d')) }}
-
-                    @else
-
-                        -
-
-                    @endif
-                </p>
-
-            </div>
-
-
-            {{-- Time --}}
-            <div
-                class="
-                    rounded-2xl
-                    border
-                    border-border
-                    bg-background
-                    p-4
-                "
-            >
-
-                <p class="text-[11px] font-bold text-muted">
-                    ساعت
-                </p>
-
-                <p
-                    dir="ltr"
-                    class="
-                        mt-1.5
-                        text-right
-                        text-sm
-                        font-black
-                        text-primary
-                    "
-                >
-                    {{ $bookingTime ?? '-' }}
-                </p>
-
-            </div>
-
-
-            {{-- Price --}}
-            <div
-                class="
-                    rounded-2xl
-                    border
-                    border-border
-                    bg-background
-                    p-4
-                "
-            >
-
-                <p class="text-[11px] font-bold text-muted">
-                    مبلغ
-                </p>
-
-                <p
-                    class="
-                        mt-1.5
-                        text-sm
-                        font-black
-                        text-text
-                    "
-                >
-                    @if($booking->final_price !== null)
-
-                        {{ $toPersianDigits(number_format($booking->final_price)) }}
-
-                        <span class="text-[10px] text-muted">
-                            تومان
-                        </span>
-
-                    @else
-
-                        -
-
-                    @endif
-                </p>
-
-            </div>
-
-
-            {{-- Reference --}}
-            <div
-                class="
-                    rounded-2xl
-                    border
-                    border-border
-                    bg-background
-                    p-4
-                "
-            >
-
-                <p class="text-[11px] font-bold text-muted">
+                <span class="text-xs text-zinc-500">
                     کد پیگیری
-                </p>
+                </span>
 
-                <p
+                <span
                     dir="ltr"
-                    class="
-                        mt-1.5
-                        truncate
-                        text-left
-                        font-mono
-                        text-xs
-                        font-black
-                        text-text
-                    "
+                    class="font-mono text-xs font-bold text-orange-400"
                 >
+
                     {{ $booking->reference_code }}
-                </p>
+
+                </span>
 
             </div>
 
         </div>
 
+    @endif
 
-        {{-- =====================================================
-            Status Message
-        ====================================================== --}}
 
-        @if($booking->status === 'pending')
+    {{-- Actions --}}
 
-            <div
-                class="
-                    mt-5
-                    rounded-2xl
-                    border
-                    border-amber-500/20
-                    bg-amber-500/5
-                    px-4
-                    py-3
-                "
+    <div class="flex items-center gap-2 p-4 sm:p-5">
+
+        @if($booking?->id)
+
+            <a
+                href="{{ route('customer.bookings.show', $booking) }}"
+                class="flex flex-1 items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-3 text-xs font-bold text-black transition hover:bg-orange-400 sm:text-sm"
             >
 
-                <p class="text-xs font-bold leading-6 text-amber-400">
-                    درخواست شما ثبت شده و منتظر تأیید سالن است.
-                </p>
+                مشاهده جزئیات
 
-            </div>
+                <x-lucide-arrow-left
+                    class="h-4 w-4"
+                />
 
-        @elseif($booking->status === 'approved')
-
-            <div
-                class="
-                    mt-5
-                    rounded-2xl
-                    border
-                    border-emerald-500/20
-                    bg-emerald-500/5
-                    px-4
-                    py-3
-                "
-            >
-
-                <p class="text-xs font-bold leading-6 text-emerald-400">
-                    نوبت شما تأیید شده است.
-                </p>
-
-            </div>
-
-        @elseif($booking->status === 'completed' && !$booking->review)
-
-            <div
-                class="
-                    mt-5
-                    rounded-2xl
-                    border
-                    border-primary/20
-                    bg-primary/5
-                    px-4
-                    py-3
-                "
-            >
-
-                <p class="text-xs font-bold leading-6 text-primary">
-                    نوبت شما انجام شده است. می‌توانید تجربه خود را ثبت کنید.
-                </p>
-
-            </div>
+            </a>
 
         @endif
 
 
-        {{-- =====================================================
-            Actions
-        ====================================================== --}}
+        @if($booking?->reference_code)
 
-        <div
-            class="
-                mt-6
-                flex
-                flex-col
-                gap-3
-                sm:flex-row
-                sm:items-center
-                sm:justify-between
-            "
-        >
+            <button
+                type="button"
+                onclick="navigator.clipboard?.writeText('{{ $booking->reference_code }}')"
+                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-400 transition hover:border-orange-500/30 hover:text-orange-500"
+                title="کپی کد پیگیری"
+            >
 
-            <div class="text-xs text-muted">
+                <x-lucide-copy
+                    class="h-4 w-4"
+                />
 
-                @if($booking->created_at)
+            </button>
 
-                    ثبت شده
-                    {{ $booking->created_at->diffForHumans() }}
-
-                @endif
-
-            </div>
-
-
-            <div class="flex flex-wrap gap-2">
-
-                {{-- Details --}}
-                @isset($detailsUrl)
-
-                    <a
-                        href="{{ $detailsUrl }}"
-                        class="
-                            inline-flex
-                            items-center
-                            justify-center
-                            rounded-xl
-                            border
-                            border-border
-                            px-4
-                            py-2.5
-                            text-xs
-                            font-black
-                            text-text
-                            transition
-                            hover:border-primary
-                            hover:text-primary
-                        "
-                    >
-                        جزئیات نوبت
-                    </a>
-
-                @endisset
-
-
-                {{-- Review --}}
-                @if($canReview && isset($reviewUrl))
-
-                    <a
-                        href="{{ $reviewUrl }}"
-                        class="
-                            inline-flex
-                            items-center
-                            justify-center
-                            rounded-xl
-                            bg-primary
-                            px-4
-                            py-2.5
-                            text-xs
-                            font-black
-                            text-white
-                            transition
-                            hover:bg-primary/90
-                        "
-                    >
-                        ثبت نظر
-                    </a>
-
-                @endif
-
-            </div>
-
-        </div>
+        @endif
 
     </div>
 

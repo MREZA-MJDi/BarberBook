@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\EnsureSalonAccess;
+use App\Http\Middleware\EnsureSuperAdmin;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -7,7 +9,9 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
-return Application::configure(basePath: dirname(__DIR__))
+return Application::configure(
+    basePath: dirname(__DIR__)
+)
 
     /*
     |--------------------------------------------------------------------------
@@ -29,16 +33,36 @@ return Application::configure(basePath: dirname(__DIR__))
 
     ->withMiddleware(function (Middleware $middleware): void {
 
-        //
-        // Middleware های فعلی پروژه اینجا قرار می‌گیرند.
-        // فعلاً چیزی تغییر نمی‌دهیم.
-        //
+        /*
+        |--------------------------------------------------------------------------
+        | Guest Redirect
+        |--------------------------------------------------------------------------
+        |
+        | کاربر مهمان وقتی وارد Route محافظت‌شده شود،
+        | مستقیماً به /login هدایت می‌شود.
+        |
+        */
+
+        $middleware->redirectGuestsTo('/login');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Middleware Aliases
+        |--------------------------------------------------------------------------
+        */
+
+        $middleware->alias([
+            'salon' => EnsureSalonAccess::class,
+            'superadmin' => EnsureSuperAdmin::class,
+
+        ]);
 
     })
 
     /*
     |--------------------------------------------------------------------------
-    | Global Exception Handling
+    | Exception Handling
     |--------------------------------------------------------------------------
     */
 
@@ -46,18 +70,20 @@ return Application::configure(basePath: dirname(__DIR__))
 
         /*
         |--------------------------------------------------------------------------
-        | Validation Errors
+        | Validation Exceptions
         |--------------------------------------------------------------------------
-        |
-        | Laravel به صورت پیش‌فرض ValidationException را مدیریت می‌کند.
-        | اینجا فقط مطمئن می‌شویم که رفتار آن برای فرم‌های وب حفظ شود.
-        |
         */
 
         $exceptions->render(function (
             ValidationException $e,
             Request $request
         ) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | JSON
+            |--------------------------------------------------------------------------
+            */
 
             if ($request->expectsJson()) {
 
@@ -68,6 +94,13 @@ return Application::configure(basePath: dirname(__DIR__))
                 ], 422);
 
             }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Web
+            |--------------------------------------------------------------------------
+            */
 
             return back()
                 ->withInput()
@@ -80,9 +113,6 @@ return Application::configure(basePath: dirname(__DIR__))
         |--------------------------------------------------------------------------
         | HTTP Exceptions
         |--------------------------------------------------------------------------
-        |
-        | 403 / 404 / 419 / 429 / 500 و ...
-        |
         */
 
         $exceptions->render(function (
@@ -95,7 +125,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
             /*
             |--------------------------------------------------------------------------
-            | API / AJAX / JSON
+            | JSON / API
             |--------------------------------------------------------------------------
             */
 
@@ -105,18 +135,23 @@ return Application::configure(basePath: dirname(__DIR__))
                     'success' => false,
                     'message' => match ($status) {
 
-                        401 => 'برای ادامه باید وارد حساب کاربری شوید.',
+                        401 =>
+                        'برای ادامه باید وارد حساب کاربری شوید.',
 
-                        403 => 'شما اجازه انجام این عملیات را ندارید.',
+                        403 =>
+                        'شما اجازه انجام این عملیات را ندارید.',
 
-                        404 => 'مورد مورد نظر پیدا نشد.',
+                        404 =>
+                        'مورد مورد نظر پیدا نشد.',
 
-                        419 => 'نشست شما منقضی شده است. لطفاً دوباره تلاش کنید.',
+                        419 =>
+                        'نشست شما منقضی شده است. لطفاً دوباره تلاش کنید.',
 
-                        429 => 'تعداد درخواست‌ها بیش از حد مجاز است. کمی بعد دوباره تلاش کنید.',
+                        429 =>
+                        'تعداد درخواست‌ها بیش از حد مجاز است. کمی بعد دوباره تلاش کنید.',
 
-                        default => 'درخواست قابل پردازش نیست.',
-
+                        default =>
+                        'درخواست قابل پردازش نیست.',
                     },
                 ], $status);
 
@@ -125,7 +160,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
             /*
             |--------------------------------------------------------------------------
-            | Web Pages
+            | Web
             |--------------------------------------------------------------------------
             */
 
@@ -133,28 +168,28 @@ return Application::configure(basePath: dirname(__DIR__))
 
                 401 => redirect()
                     ->route('login')
-                    ->with('error', 'برای ادامه باید وارد حساب کاربری شوید.'),
-
+                    ->with(
+                        'error',
+                        'برای ادامه باید وارد حساب کاربری شوید.'
+                    ),
 
                 403 => response()
                     ->view('errors.403', [], 403),
 
-
                 404 => response()
                     ->view('errors.404', [], 404),
 
-
                 419 => back()
                     ->withInput()
-                    ->with('error', 'نشست شما منقضی شده است. لطفاً دوباره تلاش کنید.'),
-
+                    ->with(
+                        'error',
+                        'نشست شما منقضی شده است. لطفاً دوباره تلاش کنید.'
+                    ),
 
                 429 => response()
                     ->view('errors.429', [], 429),
 
-
                 default => null,
-
             };
 
         });
@@ -164,14 +199,6 @@ return Application::configure(basePath: dirname(__DIR__))
         |--------------------------------------------------------------------------
         | Unexpected Exceptions
         |--------------------------------------------------------------------------
-        |
-        | خطاهای پیش‌بینی‌نشده:
-        | Database
-        | Logic
-        | Runtime
-        | TypeError
-        | ...
-        |
         */
 
         $exceptions->render(function (
@@ -181,7 +208,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
             /*
             |--------------------------------------------------------------------------
-            | JSON Response
+            | JSON
             |--------------------------------------------------------------------------
             */
 
@@ -189,6 +216,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
                 return response()->json([
                     'success' => false,
+
                     'message' => app()->isProduction()
                         ? 'خطایی در پردازش درخواست رخ داد.'
                         : $e->getMessage(),
@@ -213,12 +241,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
             /*
             |--------------------------------------------------------------------------
-            | Development
+            | Local Development
             |--------------------------------------------------------------------------
-            |
-            | در محیط local اجازه می‌دهیم Laravel صفحه Debug خودش
-            | را نمایش دهد تا خطا را راحت پیدا کنیم.
-            |
             */
 
             return null;
@@ -228,20 +252,21 @@ return Application::configure(basePath: dirname(__DIR__))
 
         /*
         |--------------------------------------------------------------------------
-        | Logging
+        | Exception Reporting
         |--------------------------------------------------------------------------
-        |
-        | همه Exception ها در Laravel Log ثبت می‌شوند.
-        |
         */
 
         $exceptions->report(function (Throwable $e): void {
 
-            //
-            // Laravel به صورت پیش‌فرض Exception را Log می‌کند.
-            // این callback را عمداً خالی نگه می‌داریم تا
-            // Logging دوباره انجام نشود.
-            //
+            /*
+            |--------------------------------------------------------------------------
+            | Laravel default logging
+            |--------------------------------------------------------------------------
+            |
+            | عمداً کاری انجام نمی‌دهیم تا Exception دوبار
+            | Log نشود.
+            |
+            */
 
         });
 

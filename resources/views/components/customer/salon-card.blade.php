@@ -1,281 +1,147 @@
-{{-- resources/views/components/customer/salon-card.blade.php --}}
-
 @props([
 'salon',
-'url' => null,
-'rating' => null,
-'reviewsCount' => null,
 ])
 
 @php
-    $rating = $rating ?? 0;
+    $cover = $salon?->cover
+        ? asset('storage/' . $salon->cover)
+        : null;
 
-    $reviewsCount = $reviewsCount ?? 0;
-
-    $initial = mb_substr(
-        $salon->name ?? 'س',
-        0,
-        1
-    );
-
-    $image = $salon->logo
+    $logo = $salon?->logo
         ? asset('storage/' . $salon->logo)
         : null;
+
+    $salonName = $salon?->name ?? 'آرایشگاه';
+
+    $description = $salon?->description;
+
+    $address = $salon?->address;
+
+    $rating = $salon?->reviews_avg_rating;
+
+    $reviewsCount = $salon?->reviews_count ?? 0;
+
+    $url = $salon?->qr_token
+        ? route('salon.public', $salon->qr_token)
+        : '#';
 @endphp
 
+<article
+    {{ $attributes->merge([
+        'class' => 'group overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 transition duration-300 hover:border-orange-500/30 hover:shadow-2xl hover:shadow-black/20',
+    ]) }}
+>
 
-@if($url)
+    {{-- Cover --}}
 
-    <a
-        href="{{ $url }}"
-        {{ $attributes->merge([
-            'class' => '
-                group
-                block
-                overflow-hidden
-                rounded-[28px]
-                border
-                border-border
-                bg-surface
-                transition
-                duration-300
-                hover:border-primary/40
-                hover:shadow-lg
-                hover:shadow-primary/5
-            ',
-        ]) }}
-    >
+    <div class="relative h-40 overflow-hidden bg-zinc-800 sm:h-48">
 
-        {{-- =====================================================
-            Image
-        ====================================================== --}}
+        @if($cover)
 
-        <div class="relative h-48 overflow-hidden bg-background">
-
-            @if($image)
-
-                <img
-                    src="{{ $image }}"
-                    alt="{{ $salon->name }}"
-                    class="
-                        h-full
-                        w-full
-                        object-cover
-                        transition
-                        duration-500
-                        group-hover:scale-105
-                    "
-                    loading="lazy"
-                >
-
-            @else
-
-                <div
-                    class="
-                        flex
-                        h-full
-                        w-full
-                        items-center
-                        justify-center
-                        bg-primary/5
-                    "
-                >
-
-                    <span
-                        class="
-                            flex
-                            h-16
-                            w-16
-                            items-center
-                            justify-center
-                            rounded-2xl
-                            bg-primary/10
-                            text-2xl
-                            font-black
-                            text-primary
-                        "
-                    >
-                        {{ $initial }}
-                    </span>
-
-                </div>
-
-            @endif
-
-
-            {{-- Rating --}}
-            @if($reviewsCount > 0)
-
-                <div
-                    class="
-                        absolute
-                        right-4
-                        top-4
-                        inline-flex
-                        items-center
-                        gap-1.5
-                        rounded-full
-                        border
-                        border-white/10
-                        bg-background/80
-                        px-3
-                        py-1.5
-                        text-xs
-                        font-black
-                        text-text
-                        backdrop-blur
-                    "
-                >
-
-                    <span class="text-primary">
-                        ★
-                    </span>
-
-                    {{ number_format((float) $rating, 1) }}
-
-                </div>
-
-            @endif
-
-        </div>
-
-
-        {{-- =====================================================
-            Content
-        ====================================================== --}}
-
-        <div class="p-5">
-
-            <h3
-                class="
-                    truncate
-                    text-base
-                    font-black
-                    text-text
-                "
+            <img
+                src="{{ $cover }}"
+                alt="{{ $salonName }}"
+                class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
             >
-                {{ $salon->name }}
-            </h3>
 
-
-            @if($salon->address)
-
-                <p
-                    class="
-                        mt-2
-                        line-clamp-2
-                        text-xs
-                        leading-6
-                        text-muted
-                    "
-                >
-                    {{ $salon->address }}
-                </p>
-
-            @endif
-
+        @else
 
             <div
-                class="
-                    mt-5
-                    flex
-                    items-center
-                    justify-between
-                    gap-3
-                "
+                class="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-950"
             >
 
-                @if($reviewsCount > 0)
-
-                    <span
-                        class="text-xs font-bold text-muted"
-                    >
-                        {{ $reviewsCount }} نظر
-                    </span>
-
-                @else
-
-                    <span
-                        class="text-xs font-bold text-muted"
-                    >
-                        هنوز نظری ثبت نشده
-                    </span>
-
-                @endif
-
-
-                <span
-                    class="
-                        text-xs
-                        font-black
-                        text-primary
-                        transition
-                        duration-300
-                        group-hover:-translate-x-1
-                    "
-                >
-                    مشاهده سالن ←
-                </span>
+                <x-lucide-store
+                    class="h-12 w-12 text-zinc-700"
+                />
 
             </div>
 
-        </div>
+        @endif
 
-    </a>
 
-@else
+        {{-- Overlay --}}
 
-    <article
-        {{ $attributes->merge([
-            'class' => '
-                overflow-hidden
-                rounded-[28px]
-                border
-                border-border
-                bg-surface
-            ',
-        ]) }}
-    >
+        <div
+            class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"
+        ></div>
 
-        <div class="relative h-48 overflow-hidden bg-background">
 
-            @if($image)
+        {{-- Logo --}}
+
+        <div
+            class="absolute bottom-4 right-4 flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border-2 border-zinc-900 bg-zinc-800 shadow-xl"
+        >
+
+            @if($logo)
 
                 <img
-                    src="{{ $image }}"
-                    alt="{{ $salon->name }}"
+                    src="{{ $logo }}"
+                    alt="{{ $salonName }}"
                     class="h-full w-full object-cover"
-                    loading="lazy"
                 >
 
             @else
 
-                <div
-                    class="
-                        flex
-                        h-full
-                        w-full
-                        items-center
-                        justify-center
-                        bg-primary/5
-                    "
+                <span class="text-lg font-black text-orange-500">
+                    {{ mb_substr($salonName, 0, 1) }}
+                </span>
+
+            @endif
+
+        </div>
+
+    </div>
+
+
+    {{-- Content --}}
+
+    <div class="p-5">
+
+        <div class="flex items-start justify-between gap-4">
+
+            <div class="min-w-0">
+
+                <h3
+                    class="truncate text-base font-black text-white sm:text-lg"
                 >
 
-                    <span
-                        class="
-                            flex
-                            h-16
-                            w-16
-                            items-center
-                            justify-center
-                            rounded-2xl
-                            bg-primary/10
-                            text-2xl
-                            font-black
-                            text-primary
-                        "
-                    >
-                        {{ $initial }}
+                    {{ $salonName }}
+
+                </h3>
+
+                @if($address)
+
+                    <div class="mt-2 flex items-start gap-1.5 text-xs text-zinc-500">
+
+                        <x-lucide-map-pin
+                            class="mt-0.5 h-3.5 w-3.5 shrink-0"
+                        />
+
+                        <span class="line-clamp-2">
+                            {{ $address }}
+                        </span>
+
+                    </div>
+
+                @endif
+
+            </div>
+
+
+            {{-- Rating --}}
+
+            @if($rating !== null)
+
+                <div
+                    class="flex shrink-0 items-center gap-1 rounded-lg bg-zinc-800 px-2.5 py-1.5"
+                >
+
+                    <x-lucide-star
+                        class="h-3.5 w-3.5 fill-orange-500 text-orange-500"
+                    />
+
+                    <span class="text-xs font-black text-white">
+                        {{ number_format((float) $rating, 1) }}
                     </span>
 
                 </div>
@@ -285,22 +151,55 @@
         </div>
 
 
-        <div class="p-5">
+        {{-- Description --}}
 
-            <h3 class="text-base font-black text-text">
-                {{ $salon->name }}
-            </h3>
+        @if($description)
 
-            @if($salon->address)
+            <p class="mt-4 line-clamp-2 text-sm leading-6 text-zinc-500">
 
-                <p class="mt-2 text-xs leading-6 text-muted">
-                    {{ $salon->address }}
-                </p>
+                {{ $description }}
+
+            </p>
+
+        @endif
+
+
+        {{-- Meta --}}
+
+        <div class="mt-4 flex items-center gap-3 text-xs text-zinc-500">
+
+            @if($rating !== null)
+
+                <span class="inline-flex items-center gap-1">
+
+                    <x-lucide-star
+                        class="h-3.5 w-3.5 text-orange-500"
+                    />
+
+                    {{ $reviewsCount }} نظر
+
+                </span>
 
             @endif
 
         </div>
 
-    </article>
 
-@endif
+        {{-- Action --}}
+
+        <a
+            href="{{ $url }}"
+            class="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-3 text-sm font-bold text-black transition hover:bg-orange-400"
+        >
+
+            مشاهده آرایشگاه
+
+            <x-lucide-arrow-left
+                class="h-4 w-4"
+            />
+
+        </a>
+
+    </div>
+
+</article>

@@ -1,108 +1,67 @@
-{{-- resources/views/components/customer/review-form.blade.php --}}
-
 @props([
-'booking',
-'action' => null,
-'method' => 'POST',
+'booking' => null,
+'review' => null,
 ])
 
 @php
-    $service = $booking->service;
-    $salon = $booking->salon;
+    $currentRating = old(
+        'rating',
+        $review?->rating ?? 0
+    );
 
-    $oldRating = old('rating', 0);
+    $currentComment = old(
+        'comment',
+        $review?->comment ?? ''
+    );
 
-    $toPersianDigits = function ($value) {
-        return strtr((string) $value, [
-            '0' => '۰',
-            '1' => '۱',
-            '2' => '۲',
-            '3' => '۳',
-            '4' => '۴',
-            '5' => '۵',
-            '6' => '۶',
-            '7' => '۷',
-            '8' => '۸',
-            '9' => '۹',
-        ]);
-    };
+    $formAction = $review?->id
+        ? route('customer.reviews.update', $review)
+        : route('customer.reviews.store');
 @endphp
 
-
 <form
-    method="{{ strtoupper($method) }}"
-    @if($action)
-    action="{{ $action }}"
-    @endif
+    method="POST"
+    action="{{ $formAction }}"
     {{ $attributes->merge([
-        'class' => '
-            overflow-hidden
-            rounded-[28px]
-            border
-            border-border
-            bg-surface
-        ',
+        'class' => 'rounded-2xl border border-zinc-800 bg-zinc-900 p-5 sm:p-6',
     ]) }}
 >
 
-    @if(strtoupper($method) !== 'GET')
+    @csrf
 
-        @csrf
+    @if($review?->id)
+
+        @method('PUT')
 
     @endif
 
 
-    {{-- =========================================================
-        Header
-    ========================================================== --}}
+    {{-- Header --}}
 
-    <div class="border-b border-border p-5 sm:p-6">
+    <div class="mb-6">
 
-        <div class="flex items-start gap-4">
+        <div class="flex items-center gap-3">
 
             <div
-                class="
-                    flex
-                    h-12
-                    w-12
-                    shrink-0
-                    items-center
-                    justify-center
-                    rounded-2xl
-                    bg-primary/10
-                    text-xl
-                    text-primary
-                "
+                class="flex h-11 w-11 items-center justify-center rounded-xl border border-orange-500/20 bg-orange-500/10 text-orange-500"
             >
-                ★
+
+                <x-lucide-message-square-heart class="h-5 w-5" />
+
             </div>
 
-            <div class="min-w-0">
+            <div>
 
-                <span class="text-xs font-black text-primary">
-                    ثبت تجربه
-                </span>
+                <h2 class="text-base font-black text-white sm:text-lg">
 
-                <h2
-                    class="
-                        mt-1.5
-                        text-xl
-                        font-black
-                        text-text
-                    "
-                >
-                    درباره این نوبت نظرت چیه؟
+                    {{ $review?->id ? 'ویرایش نظر' : 'ثبت نظر' }}
+
                 </h2>
 
-                <p
-                    class="
-                        mt-2
-                        text-sm
-                        leading-7
-                        text-muted
-                    "
-                >
-                    تجربه واقعی خودت از خدمتی که دریافت کردی را با ما به اشتراک بگذار.
+                <p class="mt-1 text-xs text-zinc-500">
+
+                    تجربه خود را درباره خدمات آرایشگاه با ما به اشتراک بگذارید.
+
                 </p>
 
             </div>
@@ -112,327 +71,190 @@
     </div>
 
 
-    {{-- =========================================================
-        Booking Context
-    ========================================================== --}}
+    {{-- Booking --}}
 
-    <div class="p-5 sm:p-6">
+    @if($booking?->id)
 
-        <div
-            class="
-                rounded-2xl
-                border
-                border-border
-                bg-background
-                p-4
-            "
+        <input
+            type="hidden"
+            name="booking_id"
+            value="{{ $booking->id }}"
         >
 
-            <div
-                class="
-                    flex
-                    flex-col
-                    gap-4
-                    sm:flex-row
-                    sm:items-center
-                    sm:justify-between
-                "
-            >
+        <div
+            class="mb-6 rounded-xl border border-zinc-800 bg-zinc-950/60 p-4"
+        >
+
+            <div class="flex items-center gap-3">
+
+                <div
+                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-orange-500"
+                >
+
+                    <x-lucide-calendar-check class="h-5 w-5" />
+
+                </div>
 
                 <div class="min-w-0">
 
-                    <p class="text-xs font-bold text-muted">
-                        نوبت ثبت‌شده
+                    <p class="text-xs text-zinc-500">
+                        نوبت
                     </p>
 
-                    <h3
-                        class="
-                            mt-1
-                            truncate
-                            text-sm
-                            font-black
-                            text-text
-                        "
-                    >
-                        {{ $salon?->name ?? 'آرایشگاه' }}
-                    </h3>
+                    <p class="mt-1 truncate text-sm font-bold text-white">
 
-                    @if($service)
+                        {{ $booking->service?->name ?? 'خدمت' }}
 
-                        <p
-                            class="
-                                mt-1
-                                truncate
-                                text-xs
-                                font-bold
-                                text-muted
-                            "
-                        >
-                            {{ $service->name }}
+                    </p>
+
+                    @if($booking->salon?->name)
+
+                        <p class="mt-1 truncate text-xs text-zinc-600">
+
+                            {{ $booking->salon->name }}
+
                         </p>
 
                     @endif
 
                 </div>
 
-
-                <div
-                    class="
-                        shrink-0
-                        rounded-xl
-                        bg-primary/10
-                        px-3
-                        py-2
-                        text-xs
-                        font-black
-                        text-primary
-                    "
-                >
-                    {{ $booking->reference_code }}
-                </div>
-
             </div>
 
         </div>
 
-
-        {{-- =====================================================
-            Rating
-        ====================================================== --}}
-
-        <div class="mt-7">
-
-            <label
-                class="
-                    block
-                    text-sm
-                    font-black
-                    text-text
-                "
-            >
-                امتیاز شما
-            </label>
-
-            <p class="mt-2 text-xs leading-6 text-muted">
-                کیفیت خدمتی که دریافت کردید را از ۱ تا ۵ امتیاز دهید.
-            </p>
+    @endif
 
 
-            <div
-                class="
-                    mt-4
-                    grid
-                    grid-cols-5
-                    gap-2
-                    sm:max-w-md
-                "
-            >
+    {{-- Rating --}}
 
-                @for($rating = 1; $rating <= 5; $rating++)
+    <div>
 
-                    <label
-                        class="
-                            cursor-pointer
-                            rounded-2xl
-                            border
-                            border-border
-                            bg-background
-                            px-3
-                            py-4
-                            text-center
-                            transition
-                            hover:border-primary/50
-                            hover:bg-primary/5
-                        "
-                    >
+        <label class="block text-sm font-bold text-zinc-300">
 
-                        <input
-                            type="radio"
-                            name="rating"
-                            value="{{ $rating }}"
-                            class="sr-only"
-                            @checked((int) $oldRating === $rating)
-                        >
+            امتیاز شما
 
-                        <span
-                            class="
-                                block
-                                text-2xl
-                                leading-none
-                                {{ (int) $oldRating >= $rating
-                                    ? 'text-primary'
-                                    : 'text-text/20'
-                                }}
-                                "
-                        >
-                            ★
-                        </span>
+        </label>
 
-                        <span
-                            class="
-                                mt-2
-                                block
-                                text-[11px]
-                                font-black
-                                text-muted
-                            "
-                        >
-                            {{ $toPersianDigits($rating) }}
-                        </span>
+        <p class="mt-1 text-xs text-zinc-600">
 
-                    </label>
+            از ۱ تا ۵ ستاره انتخاب کنید.
 
-                @endfor
+        </p>
 
-            </div>
-
-            @error('rating')
-
-            <p class="mt-2 text-xs font-bold text-red-400">
-                {{ $message }}
-            </p>
-
-            @enderror
-
-        </div>
-
-
-        {{-- =====================================================
-            Comment
-        ====================================================== --}}
-
-        <div class="mt-7">
-
-            <label
-                for="review_comment"
-                class="
-                    text-sm
-                    font-black
-                    text-text
-                "
-            >
-                تجربه شما
-            </label>
-
-            <p class="mt-2 text-xs leading-6 text-muted">
-                درباره کیفیت خدمت، برخورد یا تجربه‌ات بنویس.
-            </p>
-
-            <textarea
-                id="review_comment"
-                name="comment"
-                rows="6"
-                maxlength="2000"
-                required
-                placeholder="مثلاً از کیفیت کوتاهی و برخورد آرایشگر خیلی راضی بودم..."
-                class="
-                    mt-3
-                    w-full
-                    resize-none
-                    rounded-2xl
-                    border
-                    border-border
-                    bg-background
-                    p-4
-                    text-sm
-                    leading-8
-                    text-text
-                    outline-none
-                    transition
-                    placeholder:text-muted/60
-                    focus:border-primary
-                    focus:ring-2
-                    focus:ring-primary/10
-                "
-            >{{ old('comment') }}</textarea>
-
-            @error('comment')
-
-            <p class="mt-2 text-xs font-bold text-red-400">
-                {{ $message }}
-            </p>
-
-            @enderror
-
-        </div>
-
-
-        {{-- =====================================================
-            Notice
-        ====================================================== --}}
 
         <div
-            class="
-                mt-6
-                rounded-2xl
-                border
-                border-primary/20
-                bg-primary/5
-                p-4
-            "
+            class="mt-4 flex items-center gap-2"
+            x-data="{ rating: {{ (int) $currentRating }} }"
         >
 
-            <div class="flex items-start gap-3">
-
-                <div class="shrink-0 text-lg">
-                    ℹ
-                </div>
-
-                <p
-                    class="
-                        text-xs
-                        leading-7
-                        text-muted
-                    "
-                >
-                    نظر شما پس از بررسی سالن منتشر می‌شود و فقط درباره تجربه واقعی
-                    این نوبت نمایش داده خواهد شد.
-                </p>
-
-            </div>
-
-        </div>
-
-
-        {{-- =====================================================
-            Submit
-        ====================================================== --}}
-
-        <div
-            class="
-                mt-7
-                flex
-                flex-col-reverse
-                gap-3
-                sm:flex-row
-                sm:justify-end
-            "
-        >
-
-            <button
-                type="submit"
-                class="
-                    inline-flex
-                    items-center
-                    justify-center
-                    rounded-2xl
-                    bg-primary
-                    px-7
-                    py-4
-                    text-sm
-                    font-black
-                    text-white
-                    shadow-lg
-                    shadow-primary/20
-                    transition
-                    hover:-translate-y-0.5
-                    hover:bg-primary-hover
-                "
+            <input
+                type="hidden"
+                name="rating"
+                x-model="rating"
             >
-                ثبت نظر
-            </button>
+
+            @for($i = 1; $i <= 5; $i++)
+
+                <button
+                    type="button"
+                    @click="rating = {{ $i }}"
+                    class="rounded-xl p-1 transition hover:scale-110"
+                    aria-label="امتیاز {{ $i }} از ۵"
+                >
+
+                    <x-lucide-star
+                        class="h-7 w-7 transition sm:h-8 sm:w-8"
+                        x-bind:class="rating >= {{ $i }}
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'text-zinc-700 hover:text-yellow-500'"
+                    />
+
+                </button>
+
+            @endfor
 
         </div>
+
+
+        @error('rating')
+
+        <p class="mt-2 text-xs font-medium text-red-400">
+
+            {{ $message }}
+
+        </p>
+
+        @enderror
+
+    </div>
+
+
+    {{-- Comment --}}
+
+    <div class="mt-6">
+
+        <label
+            for="review-comment"
+            class="block text-sm font-bold text-zinc-300"
+        >
+
+            متن نظر
+
+        </label>
+
+
+        <textarea
+            id="review-comment"
+            name="comment"
+            rows="5"
+            maxlength="1000"
+            placeholder="تجربه‌تان از این آرایشگاه و خدمات آن را بنویسید..."
+            class="mt-2 w-full resize-none rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm leading-7 text-white outline-none transition placeholder:text-zinc-700 focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/10"
+        >{{ $currentComment }}</textarea>
+
+
+        @error('comment')
+
+        <p class="mt-2 text-xs font-medium text-red-400">
+
+            {{ $message }}
+
+        </p>
+
+        @enderror
+
+    </div>
+
+
+    {{-- Submit --}}
+
+    <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+
+        @if($review?->id)
+
+            <a
+                href="{{ route('customer.reviews.index') }}"
+                class="inline-flex items-center justify-center rounded-xl border border-zinc-800 px-5 py-3 text-sm font-bold text-zinc-400 transition hover:bg-zinc-800 hover:text-white"
+            >
+
+                انصراف
+
+            </a>
+
+        @endif
+
+
+        <button
+            type="submit"
+            class="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3 text-sm font-bold text-black transition hover:bg-orange-400"
+        >
+
+            <x-lucide-send class="h-4 w-4" />
+
+            {{ $review?->id ? 'ذخیره تغییرات' : 'ثبت نظر' }}
+
+        </button>
 
     </div>
 

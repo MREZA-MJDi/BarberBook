@@ -6,17 +6,11 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreSalonRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Validation rules.
-     */
     public function rules(): array
     {
         return [
@@ -91,22 +85,36 @@ class StoreSalonRequest extends FormRequest
                 'max:5000',
             ],
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | Branding
+            |--------------------------------------------------------------------------
+            */
+
+            'logo' => [
+                'nullable',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:2048',
+            ],
+
+            'cover' => [
+                'nullable',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:5120',
+            ],
+
         ];
     }
 
-
-    /**
-     * Custom validation messages.
-     */
     public function messages(): array
     {
         return [
 
             'full_name.required' =>
                 'نام و نام خانوادگی آرایشگر را وارد کنید.',
-
-            'full_name.max' =>
-                'نام و نام خانوادگی نمی‌تواند بیشتر از ۲۵۵ کاراکتر باشد.',
 
             'email.required' =>
                 'ایمیل را وارد کنید.',
@@ -120,12 +128,6 @@ class StoreSalonRequest extends FormRequest
             'user_phone.required' =>
                 'شماره موبایل آرایشگر را وارد کنید.',
 
-            'name.required' =>
-                'نام سالن را وارد کنید.',
-
-            'name.max' =>
-                'نام سالن نمی‌تواند بیشتر از ۲۵۵ کاراکتر باشد.',
-
             'password.required' =>
                 'رمز عبور را وارد کنید.',
 
@@ -133,24 +135,32 @@ class StoreSalonRequest extends FormRequest
                 'رمز عبور باید حداقل ۸ کاراکتر باشد.',
 
             'password.confirmed' =>
-                'تکرار رمز عبور با رمز عبور یکسان نیست.',
+                'تکرار رمز عبور صحیح نیست.',
 
-            'address.max' =>
-                'آدرس واردشده بیش از حد مجاز طولانی است.',
+            'name.required' =>
+                'نام سالن را وارد کنید.',
 
-            'instagram.max' =>
-                'آدرس اینستاگرام بیش از حد مجاز طولانی است.',
+            'logo.image' =>
+                'فایل لوگو باید تصویر باشد.',
 
-            'description.max' =>
-                'توضیحات بیش از حد مجاز طولانی است.',
+            'logo.mimes' =>
+                'فرمت لوگو باید JPG، PNG یا WEBP باشد.',
+
+            'logo.max' =>
+                'حجم لوگو نمی‌تواند بیشتر از ۲ مگابایت باشد.',
+
+            'cover.image' =>
+                'فایل تصویر هیرو باید تصویر باشد.',
+
+            'cover.mimes' =>
+                'فرمت تصویر هیرو باید JPG، PNG یا WEBP باشد.',
+
+            'cover.max' =>
+                'حجم تصویر هیرو نمی‌تواند بیشتر از ۵ مگابایت باشد.',
 
         ];
     }
 
-
-    /**
-     * Prepare input before validation.
-     */
     protected function prepareForValidation(): void
     {
         $this->merge([

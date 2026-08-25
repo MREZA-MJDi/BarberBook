@@ -9,29 +9,64 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('gallery_items', function (Blueprint $table) {
+
             $table->id();
 
             $table->foreignId('salon_id')
                 ->constrained()
                 ->cascadeOnDelete();
 
-            $table->string('image_path');
+            /*
+            |--------------------------------------------------------------------------
+            | Before / After
+            |--------------------------------------------------------------------------
+            */
 
-            $table->string('title')->nullable();
+            $table->string('before_image');
 
-            $table->string('alt_text')->nullable();
+            $table->string('after_image');
 
-            $table->unsignedInteger('sort_order')->default(0);
+            /*
+            |--------------------------------------------------------------------------
+            | Metadata
+            |--------------------------------------------------------------------------
+            */
 
-            $table->boolean('is_active')->default(true);
+            $table->string('title')
+                ->nullable();
+
+            $table->text('description')
+                ->nullable();
+
+            $table->string('alt_text')
+                ->nullable();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Display
+            |--------------------------------------------------------------------------
+            */
+
+            $table->unsignedInteger('sort_order')
+                ->default(0);
+
+            $table->boolean('is_active')
+                ->default(true);
 
             $table->timestamps();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Index
+            |--------------------------------------------------------------------------
+            */
 
             $table->index([
                 'salon_id',
                 'is_active',
                 'sort_order',
             ]);
+
         });
     }
 

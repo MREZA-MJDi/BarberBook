@@ -9,12 +9,15 @@ class GalleryItem extends Model
 {
     protected $fillable = [
         'salon_id',
-        'image_path',
+        'before_image',
+        'after_image',
         'title',
+        'description',
         'alt_text',
         'sort_order',
         'is_active',
     ];
+
 
     protected $casts = [
         'is_active' => 'boolean',

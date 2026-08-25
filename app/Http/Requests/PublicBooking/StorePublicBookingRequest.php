@@ -14,6 +14,44 @@ class StorePublicBookingRequest extends FormRequest
         return true;
     }
 
+
+    /**
+     * Normalize input before validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        /*
+        |--------------------------------------------------------------------------
+        | Normalize Customer Phone
+        |--------------------------------------------------------------------------
+        |
+        | Persian digits are converted to English digits.
+        |
+        */
+
+        $phone = (string) $this->input(
+            'customer_phone'
+        );
+
+        $phone = strtr($phone, [
+            '۰' => '0',
+            '۱' => '1',
+            '۲' => '2',
+            '۳' => '3',
+            '۴' => '4',
+            '۵' => '5',
+            '۶' => '6',
+            '۷' => '7',
+            '۸' => '8',
+            '۹' => '9',
+        ]);
+
+        $this->merge([
+            'customer_phone' => trim($phone),
+        ]);
+    }
+
+
     /**
      * Validation rules.
      */
@@ -23,18 +61,15 @@ class StorePublicBookingRequest extends FormRequest
 
             /*
             |--------------------------------------------------------------------------
-            | Salon
+            | Service
             |--------------------------------------------------------------------------
-            |
-            | The salon is resolved from the public salon route.
-            | It is intentionally NOT trusted from the customer form.
-            |
             */
 
             'service_id' => [
                 'required',
                 'integer',
             ],
+
 
             /*
             |--------------------------------------------------------------------------
@@ -48,6 +83,7 @@ class StorePublicBookingRequest extends FormRequest
                 'max:10',
             ],
 
+
             /*
             |--------------------------------------------------------------------------
             | Booking Time
@@ -59,6 +95,7 @@ class StorePublicBookingRequest extends FormRequest
                 'date_format:H:i',
             ],
 
+
             /*
             |--------------------------------------------------------------------------
             | Customer Name
@@ -68,20 +105,29 @@ class StorePublicBookingRequest extends FormRequest
             'customer_name' => [
                 'required',
                 'string',
+                'min:2',
                 'max:255',
             ],
+
 
             /*
             |--------------------------------------------------------------------------
             | Customer Phone
             |--------------------------------------------------------------------------
+            |
+            | Iranian mobile number:
+            |
+            | Exactly 11 digits
+            | Starts with 09
+            |
             */
 
             'customer_phone' => [
                 'required',
                 'string',
-                'max:30',
+                'regex:/^09\d{9}$/',
             ],
+
 
             /*
             |--------------------------------------------------------------------------
@@ -97,6 +143,7 @@ class StorePublicBookingRequest extends FormRequest
         ];
     }
 
+
     /**
      * Custom validation messages.
      */
@@ -104,11 +151,24 @@ class StorePublicBookingRequest extends FormRequest
     {
         return [
 
+            /*
+            |--------------------------------------------------------------------------
+            | Service
+            |--------------------------------------------------------------------------
+            */
+
             'service_id.required' =>
                 'لطفاً یک خدمت را انتخاب کنید.',
 
             'service_id.integer' =>
                 'خدمت انتخاب‌شده معتبر نیست.',
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Booking Date
+            |--------------------------------------------------------------------------
+            */
 
             'booking_date.required' =>
                 'لطفاً تاریخ رزرو را انتخاب کنید.',
@@ -119,11 +179,25 @@ class StorePublicBookingRequest extends FormRequest
             'booking_date.max' =>
                 'تاریخ رزرو معتبر نیست.',
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | Booking Time
+            |--------------------------------------------------------------------------
+            */
+
             'booking_time.required' =>
                 'لطفاً ساعت رزرو را انتخاب کنید.',
 
             'booking_time.date_format' =>
                 'فرمت ساعت رزرو باید به صورت ساعت:دقیقه باشد.',
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Customer Name
+            |--------------------------------------------------------------------------
+            */
 
             'customer_name.required' =>
                 'لطفاً نام خود را وارد کنید.',
@@ -131,8 +205,18 @@ class StorePublicBookingRequest extends FormRequest
             'customer_name.string' =>
                 'نام واردشده معتبر نیست.',
 
+            'customer_name.min' =>
+                'نام باید حداقل ۲ کاراکتر باشد.',
+
             'customer_name.max' =>
                 'نام نمی‌تواند بیشتر از ۲۵۵ کاراکتر باشد.',
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Customer Phone
+            |--------------------------------------------------------------------------
+            */
 
             'customer_phone.required' =>
                 'لطفاً شماره موبایل خود را وارد کنید.',
@@ -140,8 +224,15 @@ class StorePublicBookingRequest extends FormRequest
             'customer_phone.string' =>
                 'شماره موبایل واردشده معتبر نیست.',
 
-            'customer_phone.max' =>
-                'شماره موبایل نمی‌تواند بیشتر از ۳۰ کاراکتر باشد.',
+            'customer_phone.regex' =>
+                'شماره موبایل باید ۱۱ رقمی و با 09 شروع شود.',
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Customer Note
+            |--------------------------------------------------------------------------
+            */
 
             'customer_note.string' =>
                 'توضیحات باید به صورت متن باشد.',
@@ -150,6 +241,7 @@ class StorePublicBookingRequest extends FormRequest
                 'توضیحات نمی‌تواند بیشتر از ۱۰۰۰ کاراکتر باشد.',
         ];
     }
+
 
     /**
      * Custom attribute names.

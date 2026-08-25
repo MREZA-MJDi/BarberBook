@@ -25,53 +25,69 @@ class PublicSalonController extends Controller
     */
 
     /**
-     * Display the public salon page.
+     * Display public salon page.
      *
-     * This page is the main customer-facing page reached
-     * through the salon QR code.
+     * The salon is resolved automatically from its slug.
      */
     public function show(
-        string $qr_token
+        Salon $salon
     ): View {
 
         /*
         |--------------------------------------------------------------------------
-        | Find Active Salon
+        | Active Salon
         |--------------------------------------------------------------------------
         */
 
-        $salon = Salon::query()
-            ->where('qr_token', $qr_token)
-            ->where('is_active', true)
-            ->with([
+        abort_unless(
+            $salon->is_active,
+            404
+        );
 
-                /*
-                |--------------------------------------------------------------------------
-                | Active Services
-                |--------------------------------------------------------------------------
-                */
 
-                'services' => function ($query) {
-                    $query
-                        ->where('is_active', true)
-                        ->orderBy('name');
-                },
+        /*
+        |--------------------------------------------------------------------------
+        | Load Public Data
+        |--------------------------------------------------------------------------
+        */
 
-                /*
-                |--------------------------------------------------------------------------
-                | Active Gallery
-                |--------------------------------------------------------------------------
-                */
+        $salon->load([
+            /*
+            |--------------------------------------------------------------------------
+            | Active Services
+            |--------------------------------------------------------------------------
+            */
 
-                'galleryItems' => function ($query) {
-                    $query
-                        ->where('is_active', true)
-                        ->orderBy('sort_order')
-                        ->orderBy('id');
-                },
+            'services' => function ($query) {
 
-            ])
-            ->firstOrFail();
+                $query
+                    ->where('is_active', true)
+                    ->orderBy('name');
+
+            },
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Active Gallery
+            |--------------------------------------------------------------------------
+            |
+            | Only complete Before / After items.
+            |
+            */
+
+            'galleryItems' => function ($query) {
+
+                $query
+                    ->where('is_active', true)
+                    ->whereNotNull('before_image')
+                    ->whereNotNull('after_image')
+                    ->orderBy('sort_order')
+                    ->orderBy('id');
+
+            },
+
+        ]);
 
 
         /*
@@ -80,8 +96,12 @@ class PublicSalonController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $reviews = $salon->reviews()
-            ->where('status', 'published')
+        $reviews = $salon
+            ->reviews()
+            ->where(
+                'status',
+                'published'
+            )
             ->with([
                 'user',
                 'booking.service',
@@ -96,11 +116,16 @@ class PublicSalonController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $reviewsCount = $reviews->count();
+        $reviewsCount =
+            $reviews->count();
 
-        $averageRating = $reviewsCount > 0
-            ? round($reviews->avg('rating'), 1)
-            : 0;
+        $averageRating =
+            $reviewsCount > 0
+                ? round(
+                (float) $reviews->avg('rating'),
+                1
+            )
+                : 0;
 
 
         /*
@@ -109,30 +134,40 @@ class PublicSalonController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $requestedDate = request('date');
+        $requestedDate =
+            request('date');
 
-        $selectedDate = $requestedDate
-            ? $this->parseBookingDate($requestedDate)
-            : Carbon::today();
+        $selectedDate =
+            $requestedDate
+                ? $this->parseBookingDate(
+                $requestedDate
+            )
+                : Carbon::today();
+
 
         if (!$selectedDate) {
-            $selectedDate = Carbon::today();
+
+            $selectedDate =
+                Carbon::today();
         }
 
-        $selectedDate = $selectedDate
-            ->copy()
-            ->startOfDay();
+
+        $selectedDate =
+            $selectedDate
+                ->copy()
+                ->startOfDay();
 
 
         /*
         |--------------------------------------------------------------------------
-        | Jalali Date For UI
+        | Jalali Date
         |--------------------------------------------------------------------------
         */
 
-        $jalaliDate = Jalalian::fromCarbon(
-            $selectedDate
-        )->format('Y/m/d');
+        $jalaliDate =
+            Jalalian::fromCarbon(
+                $selectedDate
+            )->format('Y/m/d');
 
 
         /*
@@ -143,12 +178,20 @@ class PublicSalonController extends Controller
 
         $selectedService = null;
 
-        if (request()->filled('service_id')) {
 
-            $selectedService = $salon->services->firstWhere(
-                'id',
-                (int) request('service_id')
-            );
+        if (
+            request()->filled(
+                'service_id'
+            )
+        ) {
+
+            $selectedService =
+                $salon->services->firstWhere(
+                    'id',
+                    (int) request(
+                        'service_id'
+                    )
+                );
         }
 
 
@@ -158,7 +201,10 @@ class PublicSalonController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $selectedTime = request('booking_time');
+        $selectedTime =
+            request(
+                'booking_time'
+            );
 
 
         /*
@@ -169,29 +215,32 @@ class PublicSalonController extends Controller
 
         $availableSlots = [];
 
+
         if ($selectedService) {
 
             $availableSlots =
-                $this->availabilityService->getAvailableSlots(
-                    $salon->id,
-                    $selectedDate,
-                    $selectedService->duration
-                );
+                $this->availabilityService
+                    ->getAvailableSlots(
+                        $salon->id,
+                        $selectedDate,
+                        $selectedService->duration
+                    );
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Gallery Items
+        | Gallery
         |--------------------------------------------------------------------------
         */
 
-        $galleryItems = $salon->galleryItems;
+        $galleryItems =
+            $salon->galleryItems;
 
 
         /*
         |--------------------------------------------------------------------------
-        | Return Public Salon Page
+        | Public Salon Page
         |--------------------------------------------------------------------------
         */
 
@@ -234,22 +283,12 @@ class PublicSalonController extends Controller
 
     /*
     |--------------------------------------------------------------------------
-    | Helpers
+    | Date Parser
     |--------------------------------------------------------------------------
     */
 
     /**
-     * Parse booking date.
-     *
-     * Supports:
-     *
-     * Jalali:
-     * 1405/05/25
-     * 1405-05-25
-     *
-     * Gregorian:
-     * 2026/08/16
-     * 2026-08-16
+     * Parse Jalali or Gregorian date.
      */
     private function parseBookingDate(
         ?string $date
@@ -259,17 +298,28 @@ class PublicSalonController extends Controller
             return null;
         }
 
-        $date = trim($date);
+
+        $date =
+            trim($date);
+
 
         if ($date === '') {
             return null;
         }
 
-        $normalized = str_replace(
-            '-',
-            '/',
-            $date
-        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Normalize
+        |--------------------------------------------------------------------------
+        */
+
+        $normalized =
+            str_replace(
+                '-',
+                '/',
+                $date
+            );
 
 
         /*
@@ -287,10 +337,12 @@ class PublicSalonController extends Controller
                 )
             ) {
 
-                [$year] = explode(
-                    '/',
-                    $normalized
-                );
+                [$year] =
+                    explode(
+                        '/',
+                        $normalized
+                    );
+
 
                 if (
                     (int) $year >= 1200 &&
@@ -307,7 +359,9 @@ class PublicSalonController extends Controller
             }
 
         } catch (\Throwable) {
+
             // Continue with Gregorian parser.
+
         }
 
 
@@ -322,7 +376,8 @@ class PublicSalonController extends Controller
             return Carbon::createFromFormat(
                 'Y/m/d',
                 $normalized
-            )->startOfDay();
+            )
+                ->startOfDay();
 
         } catch (\Throwable) {
 

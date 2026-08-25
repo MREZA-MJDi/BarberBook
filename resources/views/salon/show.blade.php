@@ -3,12 +3,18 @@
 @section('title', ($salon->name ?? 'آرایشگاه') . ' | رزرو آنلاین')
 
 @section('description')
-    {{ $salon->description ?? 'رزرو آنلاین نوبت و مشاهده خدمات آرایشگاه' }}
+    {{ $salon->description ?? 'رزرو آنلاین نوبت و مشاهده نمونه‌کارهای آرایشگاه' }}
 @endsection
 
 @section('content')
 
     @php
+
+        /*
+        |--------------------------------------------------------------------------
+        | Statistics
+        |--------------------------------------------------------------------------
+        */
 
         $rating = $averageRating
             ?? $salon?->reviews_avg_rating
@@ -18,18 +24,40 @@
             ?? $salon?->reviews_count
             ?? 0;
 
-        $servicesCount = $salon?->services?->count() ?? 0;
+        $servicesCount =
+            $salon?->services?->count() ?? 0;
 
-        $galleryItems = collect($galleryItems ?? [])
+
+        /*
+        |--------------------------------------------------------------------------
+        | Gallery
+        |--------------------------------------------------------------------------
+        */
+
+        $galleryItems = collect(
+            $galleryItems ?? []
+        )
             ->filter(function ($item) {
-                return !empty($item->before_image)
-                    || !empty($item->after_image)
-                    || !empty($item->image);
-            });
 
-        $galleryPreview = $galleryItems->take(5);
+                return filled($item->before_image)
+                    && filled($item->after_image)
+                    && (bool) $item->is_active;
 
-        $hasMoreGallery = $galleryItems->count() > 5;
+            })
+            ->values();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Gallery Preview
+        |--------------------------------------------------------------------------
+        */
+
+        $galleryPreview =
+            $galleryItems->take(6);
+
+        $hasMoreGallery =
+            $galleryItems->count() > 6;
 
     @endphp
 
@@ -38,6 +66,7 @@
         class="relative overflow-hidden bg-background text-text"
         dir="rtl"
     >
+
 
         {{-- =========================================================
             HERO
@@ -125,15 +154,22 @@
                                 امتیاز مشتریان
                             </p>
 
-                            <div class="mt-1 flex items-center gap-2">
+                            <div
+                                class="
+                                    mt-1
+                                    flex
+                                    items-center
+                                    gap-2
+                                "
+                            >
 
-                                <strong class="text-sm font-black text-text">
-
+                                <strong
+                                    class="text-sm font-black text-text"
+                                >
                                     {{ $rating !== null
                                         ? number_format((float) $rating, 1)
                                         : '—'
                                     }}
-
                                 </strong>
 
                                 <span class="text-[11px] text-muted">
@@ -187,7 +223,14 @@
                                 خدمات سالن
                             </p>
 
-                            <p class="mt-1 text-sm font-black text-text">
+                            <p
+                                class="
+                                    mt-1
+                                    text-sm
+                                    font-black
+                                    text-text
+                                "
+                            >
 
                                 {{ $servicesCount }}
 
@@ -231,7 +274,9 @@
                             "
                         >
 
-                            <x-lucide-calendar-check-2 class="h-5 w-5" />
+                            <x-lucide-calendar-check-2
+                                class="h-5 w-5"
+                            />
 
                         </div>
 
@@ -251,7 +296,7 @@
                     </div>
 
 
-                    {{-- Contact --}}
+                    {{-- Phone --}}
 
                     <div
                         class="
@@ -330,63 +375,84 @@
 
 
         {{-- =========================================================
-            GALLERY PREVIEW
+            GALLERY
         ========================================================== --}}
 
-
-        @if($galleryItems->isNotEmpty())
+        @if($galleryPreview->isNotEmpty())
 
             <x-salon.gallery
                 :salon="$salon"
-                :gallery-items="$galleryItems"
+                :gallery-items="$galleryPreview"
+                :has-more="$hasMoreGallery"
+                :total-count="$galleryItems->count()"
             />
 
         @endif
 
+
+        {{-- =========================================================
+            BOOKING
+        ========================================================== --}}
+
+        <x-salon.booking
+            :salon="$salon"
+            :selected-date="$selectedDate"
+            :jalali-date="$jalaliDate"
+            :selected-service="$selectedService"
+            :available-slots="$availableSlots"
+            :selected-time="$selectedTime"
+        />
+
+
+        {{-- =========================================================
+            BOOKING TRACKING
+        ========================================================== --}}
+
         <section
             id="track-booking"
-            class="
-        border-y
-        border-border
-        bg-surface/20
-    "
+            class="border-y border-border bg-surface/20"
         >
 
             <div
                 class="
-            mx-auto
-            max-w-7xl
-            px-4
-            py-6
-            sm:px-6
-            lg:px-8
-        "
+                    mx-auto
+                    max-w-7xl
+                    px-4
+                    py-8
+                    sm:px-6
+                    lg:px-8
+                "
             >
 
                 <div
                     class="
-                flex
-                flex-col
-                gap-4
-                rounded-2xl
-                border
-                border-border
-                bg-surface
-                p-4
-                sm:flex-row
-                sm:items-center
-                sm:justify-between
-            "
+                        flex
+                        flex-col
+                        gap-4
+                        rounded-3xl
+                        border
+                        border-border
+                        bg-surface
+                        p-5
+                        sm:p-6
+                        lg:flex-row
+                        lg:items-center
+                        lg:justify-between
+                    "
                 >
 
                     <div>
 
-                        <p class="text-sm font-black text-text">
-                            قبلاً نوبت گرفتی؟
+                        <p class="text-xs font-black text-primary">
+                            پیگیری نوبت
                         </p>
 
-                        <p class="mt-1 text-xs leading-5 text-muted">
-                            با کد رهگیری و شماره موبایلت وضعیت نوبتت را ببین.
+                        <h2 class="mt-2 text-lg font-black text-text">
+                            قبلاً نوبت گرفتی؟
+                        </h2>
+
+                        <p class="mt-2 text-xs leading-6 text-muted">
+                            با کد رهگیری و شماره موبایلت وضعیت نوبتت را مشاهده کن.
                         </p>
 
                     </div>
@@ -395,27 +461,29 @@
                     <a
                         href="{{ route('booking.track.form') }}"
                         class="
-                    inline-flex
-                    w-full
-                    items-center
-                    justify-center
-                    gap-2
-                    rounded-xl
-                    border
-                    border-primary/30
-                    bg-primary/10
-                    px-5
-                    py-3
-                    text-sm
-                    font-black
-                    text-primary
-                    transition
-                    hover:bg-primary/20
-                    sm:w-auto
-                "
+                            inline-flex
+                            w-full
+                            items-center
+                            justify-center
+                            gap-2
+                            rounded-2xl
+                            border
+                            border-primary/30
+                            bg-primary/10
+                            px-6
+                            py-3.5
+                            text-sm
+                            font-black
+                            text-primary
+                            transition
+                            hover:bg-primary/20
+                            sm:w-auto
+                        "
                     >
 
-                        <x-lucide-search-check class="h-4 w-4" />
+                        <x-lucide-search-check
+                            class="h-4 w-4"
+                        />
 
                         پیگیری نوبت
 
@@ -424,22 +492,6 @@
                 </div>
 
             </div>
-
-        </section>
-        {{-- =========================================================
-            BOOKING
-        ========================================================== --}}
-
-        <section id="booking">
-
-            <x-salon.booking
-                :salon="$salon"
-                :selected-date="$selectedDate"
-                :jalali-date="$jalaliDate"
-                :selected-service="$selectedService"
-                :available-slots="$availableSlots"
-                :selected-time="$selectedTime"
-            />
 
         </section>
 
@@ -576,7 +628,6 @@
                             آماده‌ای؟
                         </span>
 
-
                         <h2
                             class="
                                 mt-2
@@ -588,7 +639,6 @@
                         >
                             نوبتت رو رزرو کن
                         </h2>
-
 
                         <p class="mt-2 text-sm leading-6 text-muted">
                             زمان مناسب خودت رو انتخاب کن و نوبتت رو ثبت کن.
@@ -613,7 +663,7 @@
                             font-black
                             text-white
                             transition
-                            hover:bg-primary/90
+                            hover:bg-primary-hover
                             sm:w-auto
                         "
                     >

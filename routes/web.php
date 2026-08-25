@@ -26,6 +26,8 @@ use App\Http\Controllers\Customer\CustomerNotificationController;
 use App\Http\Controllers\Customer\CustomerReviewController;
 use App\Http\Controllers\Customer\CustomerSettingsController;
 
+use App\Models\Salon;
+
 use Illuminate\Support\Facades\Route;
 
 
@@ -37,11 +39,23 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
 
+    /*
+    |--------------------------------------------------------------------------
+    | Login
+    |--------------------------------------------------------------------------
+    */
+
     Route::get('/login', [
         LoginController::class,
         'create',
     ])->name('login');
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Login Submit
+    |--------------------------------------------------------------------------
+    */
 
     Route::post('/login', [
         LoginController::class,
@@ -59,18 +73,44 @@ Route::middleware('guest')->group(function () {
 | Guest:
 |   / → /login
 |
-| Authenticated:
+| Super Admin:
+|   / → /admin/salons
+|
+| Barber:
 |   / → /dashboard
 |
 */
 
 Route::get('/', function () {
 
-    if (auth()->check()) {
-        return redirect()->route('dashboard');
+    if (!auth()->check()) {
+        return redirect()->route('login');
     }
 
-    return redirect()->route('login');
+    $user = auth()->user();
+
+    return match ((int) $user->role_id) {
+
+        /*
+        | Super Admin
+        */
+        1 => redirect()->route(
+            'admin.salons.index'
+        ),
+
+        /*
+        | Barber
+        */
+        2 => redirect()->route(
+            'dashboard'
+        ),
+
+        /*
+        | Unknown Role
+        */
+        default => abort(403),
+
+    };
 
 })->name('home');
 
@@ -80,14 +120,68 @@ Route::get('/', function () {
 | PUBLIC SALON
 |--------------------------------------------------------------------------
 |
-| بدون Login
+| URL جدید:
+|
+| /salon/alijenab
+| /salon/naser
+| /salon/khams
+|
+| Model Binding:
+| {salon:slug}
 |
 */
 
-Route::get('/salon/{qr_token}', [
+Route::get('/salon/{salon:slug}', [
     PublicSalonController::class,
     'show',
-])->name('salon.public');
+])
+    ->where(
+        'salon',
+        '[a-z0-9]+(?:-[a-z0-9]+)*'
+    )
+    ->name('salon.public');
+
+
+/*
+|--------------------------------------------------------------------------
+| LEGACY QR URL
+|--------------------------------------------------------------------------
+|
+| QRهای قدیمی:
+|
+| /salon/BB-ROBYWR66R91OPWGM
+|
+| به URL جدید منتقل می‌شوند:
+|
+| /salon/alijenab
+|
+| این Route فقط برای QRهای قدیمی است.
+|
+*/
+
+Route::get('/salon/{qr_token}', function (
+    string $qr_token
+) {
+
+    $salon = Salon::query()
+        ->where('qr_token', $qr_token)
+        ->where('is_active', true)
+        ->firstOrFail();
+
+    return redirect()->route(
+        'salon.public',
+        [
+            'salon' => $salon->slug,
+        ],
+        301
+    );
+
+})
+    ->where(
+        'qr_token',
+        'BB-[A-Z0-9]+'
+    )
+    ->name('salon.legacy');
 
 
 /*
@@ -95,26 +189,67 @@ Route::get('/salon/{qr_token}', [
 | PUBLIC BOOKING
 |--------------------------------------------------------------------------
 |
-| بدون Login
+| URL:
+|
+| /salon/alijenab/booking
 |
 */
 
-Route::get('/salon/{qr_token}/booking', [
+Route::get('/salon/{salon:slug}/booking', [
     PublicBookingController::class,
     'create',
-])->name('salon.booking.create');
+])
+    ->where(
+        'salon',
+        '[a-z0-9]+(?:-[a-z0-9]+)*'
+    )
+    ->name('salon.booking.create');
 
 
-Route::post('/salon/{qr_token}/booking', [
+/*
+|--------------------------------------------------------------------------
+| PUBLIC BOOKING STORE
+|--------------------------------------------------------------------------
+*/
+
+Route::post('/salon/{salon:slug}/booking', [
     PublicBookingController::class,
     'store',
-])->name('salon.booking.store');
+])
+    ->where(
+        'salon',
+        '[a-z0-9]+(?:-[a-z0-9]+)*'
+    )
+    ->name('salon.booking.store');
 
 
-Route::get('/salon/{qr_token}/booking/success/{booking}', [
-    PublicBookingController::class,
-    'success',
-])->name('salon.booking.success');
+/*
+|--------------------------------------------------------------------------
+| PUBLIC BOOKING SUCCESS
+|--------------------------------------------------------------------------
+|
+| Reference Code:
+|
+| /salon/alijenab/booking/success/BB-XXXXXXXX
+|
+*/
+
+Route::get(
+    '/salon/{salon:slug}/booking/success/{booking}',
+    [
+        PublicBookingController::class,
+        'success',
+    ]
+)
+    ->where(
+        'salon',
+        '[a-z0-9]+(?:-[a-z0-9]+)*'
+    )
+    ->where(
+        'booking',
+        'BB-[A-Za-z0-9]+'
+    )
+    ->name('salon.booking.success');
 
 
 /*
@@ -130,11 +265,23 @@ Route::prefix('track-booking')
     ->name('booking.track.')
     ->group(function () {
 
+        /*
+        |--------------------------------------------------------------------------
+        | Form
+        |--------------------------------------------------------------------------
+        */
+
         Route::get('/', [
             BookingTrackingController::class,
             'create',
         ])->name('form');
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Lookup
+        |--------------------------------------------------------------------------
+        */
 
         Route::post('/', [
             BookingTrackingController::class,
@@ -158,8 +305,10 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::post('/logout', LogoutController::class)
-        ->name('logout');
+    Route::post(
+        '/logout',
+        LogoutController::class
+    )->name('logout');
 
 
     /*
@@ -168,10 +317,10 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     |
     | Super Admin:
-    | auth + superadmin
     |
-    | این بخش روی Salon خاصی scope نمی‌شود،
-    | چون قرار است تمام سالن‌ها را مدیریت کند.
+    | role_id = 1
+    |
+    | بدون نیاز به Salon
     |
     */
 
@@ -190,11 +339,19 @@ Route::middleware('auth')->group(function () {
                 ->name('salons.')
                 ->group(function () {
 
+                    /*
+                    | Index
+                    */
+
                     Route::get('/', [
                         AdminSalonController::class,
                         'index',
                     ])->name('index');
 
+
+                    /*
+                    | Create
+                    */
 
                     Route::get('/create', [
                         AdminSalonController::class,
@@ -202,11 +359,19 @@ Route::middleware('auth')->group(function () {
                     ])->name('create');
 
 
+                    /*
+                    | Store
+                    */
+
                     Route::post('/', [
                         AdminSalonController::class,
                         'store',
                     ])->name('store');
 
+
+                    /*
+                    | Edit
+                    */
 
                     Route::get('/{salon}/edit', [
                         AdminSalonController::class,
@@ -214,11 +379,19 @@ Route::middleware('auth')->group(function () {
                     ])->name('edit');
 
 
+                    /*
+                    | Update
+                    */
+
                     Route::put('/{salon}', [
                         AdminSalonController::class,
                         'update',
                     ])->name('update');
 
+
+                    /*
+                    | Delete
+                    */
 
                     Route::delete('/{salon}', [
                         AdminSalonController::class,
@@ -235,9 +408,11 @@ Route::middleware('auth')->group(function () {
     | BARBER / SALON AREA
     |--------------------------------------------------------------------------
     |
-    | auth + salon
+    | auth
+    | +
+    | salon
     |
-    | هر آرایشگر فقط Salon خودش را می‌بیند.
+    | Barber باید Salon داشته باشد.
     |
     */
 
@@ -419,11 +594,22 @@ Route::middleware('auth')->group(function () {
                 ->name('qr.')
                 ->group(function () {
 
+                    /*
+                    | QR Dashboard
+                    */
+
                     Route::get('/', [
                         QrController::class,
                         'index',
                     ])->name('index');
 
+
+                    /*
+                    | Generate
+                    |
+                    | فعلاً برای compatibility نگه داشته شده.
+                    | QR token در Create Salon ساخته می‌شود.
+                    */
 
                     Route::post('/generate', [
                         QrController::class,
@@ -431,11 +617,19 @@ Route::middleware('auth')->group(function () {
                     ])->name('generate');
 
 
+                    /*
+                    | QR Image
+                    */
+
                     Route::get('/image', [
                         QrController::class,
                         'image',
                     ])->name('image');
 
+
+                    /*
+                    | QR Download
+                    */
 
                     Route::get('/download', [
                         QrController::class,
@@ -565,11 +759,12 @@ Route::middleware('auth')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | FUTURE CUSTOMER ACCOUNT AREA
+    | CUSTOMER ACCOUNT AREA
     |--------------------------------------------------------------------------
     |
-    | فعلاً این بخش Login می‌خواهد.
-    | Customer عمومی QR از این بخش استفاده نمی‌کند.
+    | فعلاً auth می‌خواهد.
+    |
+    | Public Customer از این بخش استفاده نمی‌کند.
     |
     */
 

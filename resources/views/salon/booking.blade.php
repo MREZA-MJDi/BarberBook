@@ -1,5 +1,3 @@
-{{-- resources/views/components/salon/booking.blade.php --}}
-
 @php
     $services = $salon?->services ?? collect();
 
@@ -12,23 +10,36 @@
     $hasService = (bool) $selectedService;
     $hasDate = (bool) $selectedDate;
     $hasTime = (bool) $selectedTime;
+
+    $publicSalonUrl = route('salon.public', [
+        'salon' => $salon->slug,
+    ]);
+
+    $bookingStoreUrl = route('salon.booking.store', [
+        'salon' => $salon->slug,
+    ]);
 @endphp
 
 
 <section
     id="booking"
-    class="bg-background py-10 sm:py-12 lg:py-14"
+    class="
+        scroll-mt-20
+        bg-background
+        py-14
+        sm:py-16
+        lg:py-20
+    "
     dir="rtl"
 >
 
-    <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
         {{-- =========================================================
-            HEADER
+            Header
         ========================================================== --}}
 
-        <div class="mb-6 max-w-3xl">
+        <div class="mb-8 max-w-3xl">
 
             <span
                 class="
@@ -56,33 +67,33 @@
 
             <h2
                 class="
-                    mt-3
-                    text-2xl
+                    mt-4
+                    text-3xl
                     font-black
                     leading-tight
                     text-text
-                    sm:text-3xl
+                    sm:text-4xl
                 "
             >
                 نوبتت رو همین‌جا رزرو کن
             </h2>
 
 
-            <p class="mt-2 text-sm leading-6 text-muted">
-                خدمت، تاریخ و ساعت موردنظرت رو انتخاب کن و اطلاعاتت رو ثبت کن.
+            <p class="mt-3 max-w-2xl text-sm leading-7 text-muted">
+                تاریخ، ساعت و خدمت موردنظرت رو انتخاب کن و در انتها اطلاعاتت رو ثبت کن.
             </p>
 
         </div>
 
 
         {{-- =========================================================
-            MAIN BOOKING CARD
+            Main Card
         ========================================================== --}}
 
         <div
             class="
                 overflow-hidden
-                rounded-[28px]
+                rounded-[32px]
                 border
                 border-border
                 bg-surface
@@ -91,204 +102,92 @@
             "
         >
 
-
             {{-- =====================================================
-                STEP NAV
+                Steps
             ====================================================== --}}
 
-            <div
-                class="
-                    overflow-x-auto
-                    border-b
-                    border-border
-                "
-            >
+            <div class="overflow-x-auto border-b border-border">
 
-                <div class="flex min-w-max items-center px-2 py-2.5 sm:px-4">
+                <div
+                    class="
+                        flex
+                        min-w-max
+                        items-center
+                        px-3
+                        py-3
+                        sm:px-5
+                    "
+                >
 
-
-                    {{-- Step 1 --}}
-
-                    <div class="flex items-center gap-2 px-2.5 py-2 sm:px-3">
-
-                        <span
-                            class="
-                                flex
-                                h-7
-                                w-7
-                                shrink-0
-                                items-center
-                                justify-center
-                                rounded-full
-                                bg-primary
-                                text-[11px]
-                                font-black
-                                text-white
-                            "
-                        >
-                            ۱
-                        </span>
-
-                        <span class="text-[11px] font-bold text-text sm:text-xs">
-                            خدمت
-                        </span>
-
-                    </div>
-
-
-                    <span class="h-px w-5 bg-border sm:w-8"></span>
-
-
-                    {{-- Step 2 --}}
-
-                    <div class="flex items-center gap-2 px-2.5 py-2 sm:px-3">
-
-                        <span
-                            class="
-                                flex
-                                h-7
-                                w-7
-                                shrink-0
-                                items-center
-                                justify-center
-                                rounded-full
-                                text-[11px]
-                                font-black
-                                {{ $hasService
-                                    ? 'bg-primary text-white'
-                                    : 'bg-background text-muted'
-                                }}
-                                "
-                        >
-                            ۲
-                        </span>
-
-                        <span
-                            class="
-                                text-[11px]
-                                font-bold
-                                sm:text-xs
-                                {{ $hasService ? 'text-text' : 'text-muted' }}
-                                "
-                        >
-                            تاریخ
-                        </span>
-
-                    </div>
+                    @php
+                        $steps = [
+                            [
+                                'number' => '۱',
+                                'label' => 'تاریخ',
+                                'active' => $hasDate,
+                            ],
+                            [
+                                'number' => '۲',
+                                'label' => 'ساعت',
+                                'active' => $hasTime,
+                            ],
+                            [
+                                'number' => '۳',
+                                'label' => 'خدمت',
+                                'active' => $hasService,
+                            ],
+                            [
+                                'number' => '۴',
+                                'label' => 'اطلاعات',
+                                'active' => $hasService && $hasTime,
+                            ],
+                            [
+                                'number' => '۵',
+                                'label' => 'تأیید',
+                                'active' => false,
+                            ],
+                        ];
+                    @endphp
 
 
-                    <span class="h-px w-5 bg-border sm:w-8"></span>
+                    @foreach($steps as $index => $step)
+
+                        <div class="flex items-center">
+
+                            <div class="flex items-center gap-2 px-2.5">
+
+                                <span
+                                    @class([
+                                        'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black',
+                                        'bg-primary text-white' => $step['active'],
+                                        'bg-background text-muted' => !$step['active'],
+                                    ])
+                                >
+                                    {{ $step['number'] }}
+                                </span>
+
+                                <span
+                                    @class([
+                                        'text-xs font-bold',
+                                        'text-text' => $step['active'],
+                                        'text-muted' => !$step['active'],
+                                    ])
+                                >
+                                    {{ $step['label'] }}
+                                </span>
+
+                            </div>
 
 
-                    {{-- Step 3 --}}
+                            @if(!$loop->last)
 
-                    <div class="flex items-center gap-2 px-2.5 py-2 sm:px-3">
+                                <span class="h-px w-6 bg-border"></span>
 
-                        <span
-                            class="
-                                flex
-                                h-7
-                                w-7
-                                shrink-0
-                                items-center
-                                justify-center
-                                rounded-full
-                                text-[11px]
-                                font-black
-                                {{ $hasDate
-                                    ? 'bg-primary text-white'
-                                    : 'bg-background text-muted'
-                                }}
-                                "
-                        >
-                            ۳
-                        </span>
+                            @endif
 
-                        <span
-                            class="
-                                text-[11px]
-                                font-bold
-                                sm:text-xs
-                                {{ $hasDate ? 'text-text' : 'text-muted' }}
-                                "
-                        >
-                            ساعت
-                        </span>
+                        </div>
 
-                    </div>
-
-
-                    <span class="h-px w-5 bg-border sm:w-8"></span>
-
-
-                    {{-- Step 4 --}}
-
-                    <div class="flex items-center gap-2 px-2.5 py-2 sm:px-3">
-
-                        <span
-                            class="
-                                flex
-                                h-7
-                                w-7
-                                shrink-0
-                                items-center
-                                justify-center
-                                rounded-full
-                                text-[11px]
-                                font-black
-                                {{ $hasTime
-                                    ? 'bg-primary text-white'
-                                    : 'bg-background text-muted'
-                                }}
-                                "
-                        >
-                            ۴
-                        </span>
-
-                        <span
-                            class="
-                                text-[11px]
-                                font-bold
-                                sm:text-xs
-                                {{ $hasTime ? 'text-text' : 'text-muted' }}
-                                "
-                        >
-                            اطلاعات
-                        </span>
-
-                    </div>
-
-
-                    <span class="h-px w-5 bg-border sm:w-8"></span>
-
-
-                    {{-- Step 5 --}}
-
-                    <div class="flex items-center gap-2 px-2.5 py-2 sm:px-3">
-
-                        <span
-                            class="
-                                flex
-                                h-7
-                                w-7
-                                shrink-0
-                                items-center
-                                justify-center
-                                rounded-full
-                                bg-background
-                                text-[11px]
-                                font-black
-                                text-muted
-                            "
-                        >
-                            ۵
-                        </span>
-
-                        <span class="text-[11px] font-bold text-muted sm:text-xs">
-                            تأیید
-                        </span>
-
-                    </div>
+                    @endforeach
 
                 </div>
 
@@ -296,20 +195,18 @@
 
 
             {{-- =====================================================
-                BOOKING FORM
+                Form
             ====================================================== --}}
 
             <form
                 method="POST"
-                action="{{ route('salon.booking.store', [
-                    'qr_token' => $salon->qr_token,
-                ]) }}"
+                action="{{ $bookingStoreUrl }}"
             >
 
                 @csrf
 
 
-                {{-- Hidden values --}}
+                {{-- Hidden --}}
 
                 <input
                     type="hidden"
@@ -330,111 +227,151 @@
                 >
 
 
-                <div class="divide-y divide-border">
+                {{-- =================================================
+                    Calendar + Time
+                ================================================== --}}
+
+                <div class="grid lg:grid-cols-2">
+
+                    {{-- Calendar --}}
+
+                    <div
+                        class="
+                            border-b
+                            border-border
+                            p-5
+                            sm:p-6
+                            lg:border-b-0
+                            lg:border-l
+                        "
+                    >
+
+                        <div class="mb-5">
+
+                            <p class="text-[11px] font-black text-primary">
+                                مرحله ۱
+                            </p>
+
+                            <h3 class="mt-1 text-lg font-black text-text">
+                                انتخاب تاریخ
+                            </h3>
+
+                            <p class="mt-1 text-xs leading-6 text-muted">
+                                روز مناسب برای نوبتت رو انتخاب کن.
+                            </p>
+
+                        </div>
 
 
-                    {{-- =================================================
-                        STEP 1 — SERVICE
-                    ================================================== --}}
+                        <x-public.booking.calendar
+                            :salon="$salon"
+                            :selected-service="$selectedService"
+                            :selected-date="$selectedDate"
+                            :jalali-date="$jalaliDate"
+                        />
 
-                    <div class="p-4 sm:p-5">
-
-                        <div
-                            class="
-                                mb-4
-                                flex
-                                items-end
-                                justify-between
-                                gap-3
-                            "
-                        >
-
-                            <div>
-
-                                <p class="text-[11px] font-black text-primary">
-                                    مرحله ۱
-                                </p>
-
-                                <h3 class="mt-1 text-base font-black text-text sm:text-lg">
-                                    انتخاب خدمت
-                                </h3>
-
-                            </div>
+                    </div>
 
 
-                            @if($selectedService)
+                    {{-- Time --}}
 
-                                <span
-                                    class="
-                                        inline-flex
-                                        items-center
-                                        gap-1.5
-                                        rounded-lg
-                                        bg-primary/10
-                                        px-2.5
-                                        py-1.5
-                                        text-[10px]
-                                        font-bold
-                                        text-primary
-                                    "
-                                >
+                    <div class="p-5 sm:p-6">
 
-                                    <x-lucide-check class="h-3 w-3" />
+                        <x-public.booking.time-picker
+                            :salon="$salon"
+                            :selected-service="$selectedService"
+                            :available-slots="$availableSlots"
+                            :selected-time="$selectedTime"
+                            :selected-date="$selectedDate"
+                            :jalali-date="$jalaliDate"
+                        />
 
-                                    {{ $selectedService->name }}
+                    </div>
 
-                                </span>
+                </div>
 
-                            @endif
+
+                {{-- =================================================
+                    Service + Customer
+                ================================================== --}}
+
+                <div class="grid border-t border-border lg:grid-cols-2">
+
+                    {{-- Service --}}
+
+                    <div
+                        class="
+                            border-b
+                            border-border
+                            p-5
+                            sm:p-6
+                            lg:border-b-0
+                            lg:border-l
+                        "
+                    >
+
+                        <div class="mb-5">
+
+                            <p class="text-[11px] font-black text-primary">
+                                مرحله ۳
+                            </p>
+
+                            <h3 class="mt-1 text-lg font-black text-text">
+                                انتخاب خدمت
+                            </h3>
+
+                            <p class="mt-1 text-xs leading-6 text-muted">
+                                خدمتی که می‌خواهی را انتخاب کن.
+                            </p>
 
                         </div>
 
 
                         @if($services->isNotEmpty())
 
-                            <div
-                                class="
-                                    grid
-                                    gap-3
-                                    sm:grid-cols-2
-                                    lg:grid-cols-3
-                                "
-                            >
+                            <div class="space-y-3">
 
                                 @foreach($services as $service)
 
                                     @php
+
                                         $isSelected =
-                                            (int) request('service_id') === (int) $service->id;
+                                            (int) request('service_id')
+                                            === (int) $service->id;
+
 
                                         $serviceUrl = route(
                                             'salon.public',
                                             array_filter([
-                                                'qr_token' => $salon->qr_token,
-                                                'date' => request('date') ?: $jalaliDate,
-                                                'service_id' => $service->id,
-                                                'booking_time' => request('booking_time'),
+                                                'salon' =>
+                                                    $salon->slug,
+
+                                                'date' =>
+                                                    request('date')
+                                                        ?: $jalaliDate,
+
+                                                'service_id' =>
+                                                    $service->id,
+
+                                                'booking_time' =>
+                                                    request('booking_time'),
+
                                             ], fn ($value) =>
                                                 $value !== null &&
                                                 $value !== ''
                                             )
                                         );
+
                                     @endphp
 
 
                                     <a
                                         href="{{ $serviceUrl }}#booking"
-                                        class="
-                                            rounded-2xl
-                                            border
-                                            p-3.5
-                                            transition
-                                            sm:p-4
-                                            {{ $isSelected
-                                                ? 'border-primary bg-primary/5'
-                                                : 'border-border bg-background hover:border-primary/40'
-                                            }}
-                                            "
+                                        @class([
+                                            'block rounded-2xl border p-4 transition',
+                                            'border-primary bg-primary/5' => $isSelected,
+                                            'border-border bg-background hover:border-primary/40' => !$isSelected,
+                                        ])
                                     >
 
                                         <div
@@ -484,7 +421,7 @@
 
                                             <div class="shrink-0 text-left">
 
-                                                <p class="text-xs font-black text-primary">
+                                                <p class="text-sm font-black text-primary">
                                                     {{ number_format($service->price) }}
                                                 </p>
 
@@ -499,7 +436,7 @@
 
                                         <div
                                             class="
-                                                mt-3
+                                                mt-4
                                                 flex
                                                 items-center
                                                 justify-between
@@ -510,14 +447,14 @@
                                                 class="
                                                     inline-flex
                                                     items-center
-                                                    gap-1
+                                                    gap-1.5
                                                     text-[10px]
                                                     font-bold
                                                     text-muted
                                                 "
                                             >
 
-                                                <x-lucide-clock-3 class="h-3 w-3" />
+                                                <x-lucide-clock-3 class="h-3.5 w-3.5" />
 
                                                 {{ $service->duration }} دقیقه
 
@@ -528,8 +465,11 @@
                                                 class="
                                                     text-[10px]
                                                     font-black
-                                                    text-primary
-                                                "
+                                                    {{ $isSelected
+                                                        ? 'text-primary'
+                                                        : 'text-muted'
+                                                    }}
+                                                    "
                                             >
                                                 {{ $isSelected ? 'انتخاب شده' : 'انتخاب' }}
                                             </span>
@@ -555,134 +495,28 @@
                     </div>
 
 
-                    {{-- =================================================
-                        STEP 2 + STEP 3
-                    ================================================== --}}
+                    {{-- Customer --}}
 
-                    <div class="grid lg:grid-cols-2">
+                    <div class="p-5 sm:p-6">
 
+                        <div class="mb-5">
 
-                        {{-- Calendar --}}
+                            <p class="text-[11px] font-black text-primary">
+                                مرحله ۴
+                            </p>
 
-                        <div
-                            class="
-                                border-b
-                                border-border
-                                p-4
-                                sm:p-5
-                                lg:border-b-0
-                                lg:border-l
-                            "
-                        >
+                            <h3 class="mt-1 text-lg font-black text-text">
+                                اطلاعات مشتری
+                            </h3>
 
-                            <div class="mb-4">
-
-                                <p class="text-[11px] font-black text-primary">
-                                    مرحله ۲
-                                </p>
-
-                                <h3 class="mt-1 text-base font-black text-text sm:text-lg">
-                                    انتخاب تاریخ
-                                </h3>
-
-                                <p class="mt-1 text-xs text-muted">
-                                    تاریخ مناسب را انتخاب کن.
-                                </p>
-
-                            </div>
-
-
-                            <div class="overflow-hidden">
-
-                                <x-public.booking.calendar
-                                    :salon="$salon"
-                                    :selectedService="$selectedService"
-                                    :selectedDate="$selectedDate"
-                                    :jalaliDate="$jalaliDate"
-                                />
-
-                            </div>
+                            <p class="mt-1 text-xs leading-6 text-muted">
+                                این اطلاعات برای ثبت و پیگیری نوبت استفاده می‌شود.
+                            </p>
 
                         </div>
 
 
-                        {{-- Time --}}
-
-                        <div class="p-4 sm:p-5">
-
-                            <div class="mb-4">
-
-                                <p class="text-[11px] font-black text-primary">
-                                    مرحله ۳
-                                </p>
-
-                                <h3 class="mt-1 text-base font-black text-text sm:text-lg">
-                                    انتخاب ساعت
-                                </h3>
-
-                                <p class="mt-1 text-xs text-muted">
-                                    یکی از ساعت‌های آزاد را انتخاب کن.
-                                </p>
-
-                            </div>
-
-
-                            <div class="overflow-hidden">
-
-                                <x-public.booking.time-picker
-                                    :salon="$salon"
-                                    :selectedService="$selectedService"
-                                    :availableSlots="$availableSlots"
-                                    :selectedTime="$selectedTime"
-                                    :selectedDate="$selectedDate"
-                                    :jalaliDate="$jalaliDate"
-                                />
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-                    {{-- =================================================
-                        STEP 4 — CUSTOMER INFORMATION
-                    ================================================== --}}
-
-                    <div class="p-4 sm:p-5">
-
-                        <div
-                            class="
-                                mb-4
-                                flex
-                                items-end
-                                justify-between
-                                gap-3
-                            "
-                        >
-
-                            <div>
-
-                                <p class="text-[11px] font-black text-primary">
-                                    مرحله ۴
-                                </p>
-
-                                <h3 class="mt-1 text-base font-black text-text sm:text-lg">
-                                    اطلاعات شما
-                                </h3>
-
-                            </div>
-
-
-                            <span class="hidden text-[10px] text-muted sm:block">
-                                برای ثبت و پیگیری نوبت
-                            </span>
-
-                        </div>
-
-
-                        <div class="grid gap-4 sm:grid-cols-2">
-
+                        <div class="space-y-4">
 
                             {{-- Name --}}
 
@@ -751,11 +585,11 @@
                                     name="customer_phone"
                                     value="{{ old('customer_phone') }}"
                                     required
-                                    maxlength="30"
-                                    inputmode="tel"
+                                    maxlength="11"
+                                    inputmode="numeric"
                                     autocomplete="tel"
                                     dir="ltr"
-                                    placeholder="0912xxxxxxx"
+                                    placeholder="09121234567"
                                     class="
                                         mt-2
                                         w-full
@@ -788,7 +622,7 @@
 
                             {{-- Note --}}
 
-                            <div class="sm:col-span-2">
+                            <div>
 
                                 <label
                                     for="customer_note"
@@ -803,7 +637,7 @@
                                 <textarea
                                     id="customer_note"
                                     name="customer_note"
-                                    rows="3"
+                                    rows="5"
                                     maxlength="1000"
                                     placeholder="مثلاً مدل مو مثل عکس قبلی باشه..."
                                     class="
@@ -840,157 +674,153 @@
 
                     </div>
 
+                </div>
 
-                    {{-- =================================================
-                        STEP 5 — SUMMARY
-                    ================================================== --}}
+
+                {{-- =================================================
+                    Summary
+                ================================================== --}}
+
+                <div
+                    class="
+                        border-t
+                        border-primary/10
+                        bg-primary/[0.025]
+                        p-5
+                        sm:p-6
+                    "
+                >
 
                     <div
                         class="
-                            border-t
-                            border-primary/10
-                            bg-primary/[0.025]
-                            p-4
-                            sm:p-5
+                            mb-5
+                            flex
+                            items-center
+                            justify-between
                         "
                     >
 
-                        <div
-                            class="
-                                mb-4
-                                flex
-                                items-center
-                                justify-between
-                                gap-3
-                            "
-                        >
+                        <div>
 
-                            <div>
+                            <p class="text-[11px] font-black text-primary">
+                                مرحله ۵
+                            </p>
 
-                                <p class="text-[11px] font-black text-primary">
-                                    مرحله ۵
-                                </p>
-
-                                <h3 class="mt-1 text-base font-black text-text sm:text-lg">
-                                    مرور و تأیید
-                                </h3>
-
-                            </div>
-
-
-                            <x-lucide-clipboard-check
-                                class="h-5 w-5 text-primary"
-                            />
+                            <h3 class="mt-1 text-lg font-black text-text">
+                                خلاصه نوبت
+                            </h3>
 
                         </div>
 
 
-                        <x-public.booking.booking-summary
-                            :salon="$salon"
-                            :selectedService="$selectedService"
-                            :jalaliDate="$jalaliDate"
-                            :selectedTime="$selectedTime"
+                        <x-lucide-clipboard-check
+                            class="h-5 w-5 text-primary"
                         />
-
-
-                        {{-- Errors --}}
-
-                        @if($errors->any())
-
-                            <div
-                                class="
-                                    mt-4
-                                    rounded-xl
-                                    border
-                                    border-red-500/20
-                                    bg-red-500/5
-                                    p-3
-                                "
-                            >
-
-                                <p class="text-xs font-black text-red-400">
-                                    اطلاعات رزرو کامل نیست.
-                                </p>
-
-                                <ul
-                                    class="
-                                        mt-1.5
-                                        space-y-1
-                                        text-[11px]
-                                        leading-5
-                                        text-red-300/80
-                                    "
-                                >
-
-                                    @foreach($errors->all() as $error)
-
-                                        <li>
-                                            • {{ $error }}
-                                        </li>
-
-                                    @endforeach
-
-                                </ul>
-
-                            </div>
-
-                        @endif
-
-
-                        @if(session('error'))
-
-                            <div
-                                class="
-                                    mt-4
-                                    rounded-xl
-                                    border
-                                    border-red-500/20
-                                    bg-red-500/5
-                                    p-3
-                                    text-xs
-                                    font-bold
-                                    leading-6
-                                    text-red-400
-                                "
-                            >
-
-                                {{ session('error') }}
-
-                            </div>
-
-                        @endif
 
                     </div>
 
 
-                    {{-- =================================================
-                        FINAL ACTION
-                    ================================================== --}}
+                    <x-public.booking.booking-summary
+                        :salon="$salon"
+                        :selected-service="$selectedService"
+                        :jalali-date="$jalaliDate"
+                        :selected-time="$selectedTime"
+                    />
+
+
+                    @if($errors->any())
+
+                        <div
+                            class="
+                                mt-4
+                                rounded-xl
+                                border
+                                border-red-500/20
+                                bg-red-500/5
+                                p-4
+                            "
+                        >
+
+                            <p class="text-xs font-black text-red-400">
+                                اطلاعات رزرو کامل نیست.
+                            </p>
+
+                            <ul class="mt-2 space-y-1 text-[11px] leading-5 text-red-300/80">
+
+                                @foreach($errors->all() as $error)
+
+                                    <li>
+                                        • {{ $error }}
+                                    </li>
+
+                                @endforeach
+
+                            </ul>
+
+                        </div>
+
+                    @endif
+
+
+                    @if(session('error'))
+
+                        <div
+                            class="
+                                mt-4
+                                rounded-xl
+                                border
+                                border-red-500/20
+                                bg-red-500/5
+                                p-4
+                                text-xs
+                                font-bold
+                                leading-6
+                                text-red-400
+                            "
+                        >
+
+                            {{ session('error') }}
+
+                        </div>
+
+                    @endif
+
+                </div>
+
+
+                {{-- =================================================
+                    Submit
+                ================================================== --}}
+
+                <div
+                    class="
+                        border-t
+                        border-border
+                        bg-surface
+                        p-5
+                        sm:p-6
+                    "
+                >
 
                     <div
                         class="
                             flex
                             flex-col
                             gap-4
-                            border-t
-                            border-border
-                            bg-surface
-                            p-4
                             sm:flex-row
                             sm:items-center
                             sm:justify-between
-                            sm:p-5
                         "
                     >
 
                         <div>
 
                             <h3 class="text-sm font-black text-text sm:text-base">
-                                آماده‌ای نوبتت رو ثبت کنی؟
+                                آماده ثبت نوبتی؟
                             </h3>
 
                             <p class="mt-1 text-[11px] leading-5 text-muted">
-                                بعد از ثبت، درخواست برای آرایشگاه ارسال می‌شود.
+                                درخواست برای آرایشگاه ارسال می‌شود و منتظر تأیید می‌ماند.
                             </p>
 
                         </div>
@@ -1004,10 +834,10 @@
                                 items-center
                                 justify-center
                                 gap-2
-                                rounded-xl
+                                rounded-2xl
                                 bg-primary
-                                px-6
-                                py-3.5
+                                px-7
+                                py-4
                                 text-sm
                                 font-black
                                 text-white
@@ -1018,7 +848,7 @@
                                 disabled:cursor-not-allowed
                                 disabled:opacity-50
                                 sm:w-auto
-                                sm:min-w-48
+                                sm:min-w-56
                             "
                             @disabled(
                             !$selectedService ||

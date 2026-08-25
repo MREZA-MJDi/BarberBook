@@ -622,6 +622,12 @@ class BookingController extends Controller
     ): RedirectResponse {
         $this->authorizeBooking($booking);
 
+        /*
+        |--------------------------------------------------------------------------
+        | Status
+        |--------------------------------------------------------------------------
+        */
+
         if ($booking->status !== 'approved') {
 
             return back()->with(
@@ -630,14 +636,41 @@ class BookingController extends Controller
             );
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | Prevent Completing Future Booking
+        |--------------------------------------------------------------------------
+        */
+
+        $bookingDateTime = Carbon::parse(
+            $booking->booking_date . ' ' . $booking->booking_time
+        );
+
+        if ($bookingDateTime->isFuture()) {
+
+            return back()->with(
+                'error',
+                'این رزرو هنوز به زمان انجام نرسیده است.'
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Complete Booking
+        |--------------------------------------------------------------------------
+        */
+
         $booking->update([
 
-            'status' => 'completed',
+            'status' =>
+                'completed',
 
-            'completed_at' => now(),
+            'completed_at' =>
+                now(),
 
             'barber_note' =>
                 $request->barber_note,
+
         ]);
 
         return back()->with(
@@ -645,7 +678,6 @@ class BookingController extends Controller
             'رزرو با موفقیت تکمیل شد.'
         );
     }
-
     /*
     |--------------------------------------------------------------------------
     | Reschedule

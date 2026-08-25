@@ -20,35 +20,78 @@ class QrController extends Controller
     |--------------------------------------------------------------------------
     */
 
+    /**
+     * Display salon QR dashboard.
+     */
     public function index(): View
     {
-        $salon = Auth::user()?->salon;
-
-        abort_if(!$salon, 404);
-
-        $qrSvg = null;
-
         /*
         |--------------------------------------------------------------------------
-        | Generate SVG For Dashboard
+        | Current Salon
         |--------------------------------------------------------------------------
         */
 
-        if (filled($salon->qr_token)) {
+        $salon = Auth::user()?->salon;
 
-            $url = $this->publicUrl($salon);
+        abort_if(
+            !$salon,
+            404
+        );
 
-            $qrSvg = $this->renderQr(
-                $url,
-                8
-            );
+
+        /*
+        |--------------------------------------------------------------------------
+        | QR SVG
+        |--------------------------------------------------------------------------
+        */
+
+        $qrSvg = null;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Render Existing QR
+        |--------------------------------------------------------------------------
+        |
+        | qr_token فقط مشخص می‌کند QR برای این سالن ساخته شده است.
+        | محتوای واقعی QR از public slug URL ساخته می‌شود.
+        |
+        */
+
+        if (
+            filled(
+                $salon->qr_token
+            )
+        ) {
+
+            $publicUrl =
+                $this->publicUrl(
+                    $salon
+                );
+
+
+            $qrSvg =
+                $this->renderQr(
+                    $publicUrl,
+                    8
+                );
         }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | View
+        |--------------------------------------------------------------------------
+        */
 
         return view(
             'dashboard.qr.index',
             [
-                'salon' => $salon,
-                'qrSvg' => $qrSvg,
+                'salon' =>
+                    $salon,
+
+                'qrSvg' =>
+                    $qrSvg,
             ]
         );
     }
@@ -60,11 +103,28 @@ class QrController extends Controller
     |--------------------------------------------------------------------------
     */
 
+    /**
+     * Generate unique QR token.
+     *
+     * Important:
+     * The QR token is stored in database,
+     * but the public QR URL uses salon slug.
+     */
     public function generate(): RedirectResponse
     {
+        /*
+        |--------------------------------------------------------------------------
+        | Current Salon
+        |--------------------------------------------------------------------------
+        */
+
         $salon = Auth::user()?->salon;
 
-        abort_if(!$salon, 404);
+        abort_if(
+            !$salon,
+            404
+        );
+
 
         /*
         |--------------------------------------------------------------------------
@@ -72,46 +132,69 @@ class QrController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        if (filled($salon->qr_token)) {
+        if (
+            filled(
+                $salon->qr_token
+            )
+        ) {
 
             return redirect()
-                ->route('qr.index')
+                ->route(
+                    'qr.index'
+                )
                 ->with(
                     'info',
                     'QR Code سالن شما قبلاً ساخته شده است.'
                 );
         }
 
+
         /*
         |--------------------------------------------------------------------------
-        | Generate Unique Token
+        | Generate Unique QR Token
         |--------------------------------------------------------------------------
         */
 
         do {
 
-            $token = 'BB-' . strtoupper(
+            $token =
+                'BB-' .
+                strtoupper(
                     Str::random(16)
                 );
 
         } while (
             Salon::query()
-                ->where('qr_token', $token)
+                ->where(
+                    'qr_token',
+                    $token
+                )
                 ->exists()
         );
 
+
         /*
         |--------------------------------------------------------------------------
-        | Save
+        | Save Token
         |--------------------------------------------------------------------------
         */
 
         $salon->update([
-            'qr_token' => $token,
+            'qr_token' =>
+                $token,
         ]);
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Success
+        |--------------------------------------------------------------------------
+        */
+
         return redirect()
-            ->route('qr.index')
+            ->route(
+                'qr.index'
+            )
             ->with(
                 'success',
                 'QR Code سالن شما با موفقیت ساخته شد.'
@@ -125,12 +208,25 @@ class QrController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    private function publicUrl(Salon $salon): string
-    {
+    /**
+     * Build public salon URL.
+     *
+     * New URL:
+     *
+     * /salon/{slug}
+     *
+     * Example:
+     *
+     * /salon/alijenab
+     */
+    private function publicUrl(
+        Salon $salon
+    ): string {
         return route(
             'salon.public',
             [
-                'qr_token' => $salon->qr_token,
+                'salon' =>
+                    $salon->slug,
             ]
         );
     }
@@ -142,30 +238,90 @@ class QrController extends Controller
     |--------------------------------------------------------------------------
     */
 
+    /**
+     * Render QR as SVG.
+     */
     private function renderQr(
         string $url,
         int $scale = 8
     ): string {
-        $options = new QROptions();
+        /*
+        |--------------------------------------------------------------------------
+        | QR Options
+        |--------------------------------------------------------------------------
+        */
 
-        $options->outputInterface = QRMarkupSVG::class;
+        $options =
+            new QROptions();
 
-        $options->outputBase64 = false;
 
-        $options->eccLevel = 'H';
+        /*
+        |--------------------------------------------------------------------------
+        | SVG Output
+        |--------------------------------------------------------------------------
+        */
 
-        $options->addQuietzone = true;
+        $options->outputInterface =
+            QRMarkupSVG::class;
 
-        $options->scale = max(
-            1,
-            $scale
+        $options->outputBase64 =
+            false;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Error Correction
+        |--------------------------------------------------------------------------
+        */
+
+        $options->eccLevel =
+            'H';
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Quiet Zone
+        |--------------------------------------------------------------------------
+        */
+
+        $options->addQuietzone =
+            true;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Scale
+        |--------------------------------------------------------------------------
+        */
+
+        $options->scale =
+            max(
+                1,
+                $scale
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | QR Code
+        |--------------------------------------------------------------------------
+        */
+
+        $qrCode =
+            new QRCode(
+                $options
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Render
+        |--------------------------------------------------------------------------
+        */
+
+        return $qrCode->render(
+            $url
         );
-
-        $qrCode = new QRCode(
-            $options
-        );
-
-        return $qrCode->render($url);
     }
 
 
@@ -175,23 +331,69 @@ class QrController extends Controller
     |--------------------------------------------------------------------------
     */
 
+    /**
+     * Render QR SVG inline.
+     */
     public function image(): Response
     {
+        /*
+        |--------------------------------------------------------------------------
+        | Current Salon
+        |--------------------------------------------------------------------------
+        */
+
         $salon = Auth::user()?->salon;
 
-        abort_if(!$salon, 404);
-
         abort_if(
-            blank($salon->qr_token),
+            !$salon,
             404
         );
 
-        $url = $this->publicUrl($salon);
 
-        $svg = $this->renderQr(
-            $url,
-            8
+        /*
+        |--------------------------------------------------------------------------
+        | QR Must Exist
+        |--------------------------------------------------------------------------
+        */
+
+        abort_if(
+            blank(
+                $salon->qr_token
+            ),
+            404
         );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Public URL
+        |--------------------------------------------------------------------------
+        */
+
+        $publicUrl =
+            $this->publicUrl(
+                $salon
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Render
+        |--------------------------------------------------------------------------
+        */
+
+        $svg =
+            $this->renderQr(
+                $publicUrl,
+                8
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Response
+        |--------------------------------------------------------------------------
+        */
 
         return response(
             $svg,
@@ -219,28 +421,83 @@ class QrController extends Controller
     |--------------------------------------------------------------------------
     */
 
+    /**
+     * Download QR SVG.
+     */
     public function download(): Response
     {
+        /*
+        |--------------------------------------------------------------------------
+        | Current Salon
+        |--------------------------------------------------------------------------
+        */
+
         $salon = Auth::user()?->salon;
 
-        abort_if(!$salon, 404);
-
         abort_if(
-            blank($salon->qr_token),
+            !$salon,
             404
         );
 
-        $url = $this->publicUrl($salon);
 
-        $svg = $this->renderQr(
-            $url,
-            12
+        /*
+        |--------------------------------------------------------------------------
+        | QR Must Exist
+        |--------------------------------------------------------------------------
+        */
+
+        abort_if(
+            blank(
+                $salon->qr_token
+            ),
+            404
         );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Public URL
+        |--------------------------------------------------------------------------
+        */
+
+        $publicUrl =
+            $this->publicUrl(
+                $salon
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | High Resolution QR
+        |--------------------------------------------------------------------------
+        */
+
+        $svg =
+            $this->renderQr(
+                $publicUrl,
+                12
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Filename
+        |--------------------------------------------------------------------------
+        */
 
         $filename =
             Str::slug(
-                $salon->name ?: 'salon'
-            ) . '-qr.svg';
+                $salon->name
+                    ?: 'salon'
+            )
+            . '-qr.svg';
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Download Response
+        |--------------------------------------------------------------------------
+        */
 
         return response(
             $svg,
@@ -250,7 +507,9 @@ class QrController extends Controller
                     'image/svg+xml; charset=UTF-8',
 
                 'Content-Disposition' =>
-                    'attachment; filename="' . $filename . '"',
+                    'attachment; filename="' .
+                    $filename .
+                    '"',
 
                 'Cache-Control' =>
                     'no-cache, no-store, must-revalidate',

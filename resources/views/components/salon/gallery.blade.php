@@ -1,75 +1,282 @@
-<section id="gallery" class="py-20 bg-background" dir="rtl">
+@props([
+'salon',
+'galleryItems' => collect(),
+'hasMore' => false,
+'totalCount' => 0,
+])
 
-    <div class="max-w-7xl px-5 mx-auto">
+<section
+    id="gallery"
+    class="
+        border-t
+        border-border
+        bg-background
+        py-14
+        sm:py-16
+        lg:py-20
+    "
+    dir="rtl"
+>
 
-        <div class="flex items-end justify-between">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
-            <div>
 
-                <span class="text-sm font-bold tracking-widest uppercase text-primary">
-                    Gallery
-                </span>
+        {{-- =========================================================
+            Header
+        ========================================================== --}}
 
-                <h2 class="mt-2 text-3xl font-black text-text lg:text-4xl">
-                    آخرین نمونه‌کارها
-                </h2>
+        <div>
 
-                <p class="mt-3 max-w-xl leading-8 text-muted">
-                    چند نمونه از اصلاح‌ها و استایل‌هایی که اخیراً در آرایشگاه انجام شده است.
-                </p>
+            <span
+                class="
+                    inline-flex
+                    items-center
+                    gap-2
+                    text-xs
+                    font-black
+                    text-primary
+                "
+            >
 
-            </div>
+                <span class="h-px w-8 bg-primary"></span>
+
+                نمونه‌کارها
+
+            </span>
+
+
+            <h2
+                class="
+                    mt-3
+                    text-2xl
+                    font-black
+                    text-text
+                    sm:text-3xl
+                "
+            >
+                قبل و بعد
+            </h2>
+
+
+            <p class="mt-2 max-w-2xl text-sm leading-7 text-muted">
+                بخشی از نمونه‌کارهای
+                {{ $salon?->name ?? 'سالن' }}
+                را ببین.
+            </p>
 
         </div>
 
-        @if($galleryItems->isNotEmpty())
 
-            @php
-                $variants = [
-                    'min-w-[260px] h-[420px]',
-                    'min-w-[220px] h-[320px] mt-12',
-                    'min-w-[300px] h-[480px]',
-                    'min-w-[240px] h-[360px] mt-20',
-                ];
-            @endphp
+        {{-- =========================================================
+            Gallery
+        ========================================================== --}}
 
-            <div class="flex gap-5 mt-10 overflow-x-auto snap-x snap-mandatory pb-2">
+        <div
+            class="
+                mt-8
+                grid
+                gap-5
+                sm:grid-cols-2
+                lg:grid-cols-3
+            "
+        >
 
-                @foreach($galleryItems as $index => $item)
+            @foreach($galleryItems as $item)
 
-                    @php
-                        $variant = $variants[$index % count($variants)];
-                    @endphp
+                @php
+
+                    $beforeUrl =
+                        Storage::url(
+                            $item->before_image
+                        );
+
+                    $afterUrl =
+                        Storage::url(
+                            $item->after_image
+                        );
+
+                @endphp
+
+
+                <article
+                    class="
+                        group
+                        overflow-hidden
+                        rounded-3xl
+                        border
+                        border-border
+                        bg-surface
+                    "
+                >
+
+                    {{-- Before / After --}}
 
                     <div
-                        class="group relative {{ $variant }} overflow-hidden rounded-[30px] snap-start"
+                        class="
+                            grid
+                            grid-cols-2
+                            gap-px
+                            bg-border
+                        "
                     >
 
-                        <img
-                            src="{{ Storage::url($item->image_path) }}"
-                            class="object-cover w-full h-full transition duration-500 group-hover:scale-110"
-                            alt="{{ $item->alt_text ?: $item->title ?: 'نمونه‌کار آرایشگاه' }}"
+                        {{-- Before --}}
+
+                        <div
+                            class="
+                                relative
+                                aspect-[4/3]
+                                overflow-hidden
+                                bg-zinc-900
+                            "
                         >
 
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+                            <img
+                                src="{{ $beforeUrl }}"
+                                alt="{{
+                                    ($item->alt_text
+                                        ?: $item->title
+                                        ?: 'نمونه‌کار'
+                                    ) . ' - قبل'
+                                }}"
+                                loading="lazy"
+                                class="
+                                    h-full
+                                    w-full
+                                    object-cover
+                                    transition
+                                    duration-500
+                                    group-hover:scale-[1.03]
+                                "
+                            >
 
-                        @if($item->title)
 
-                            <div class="absolute bottom-5 right-5 left-5">
+                            <span
+                                class="
+                                    absolute
+                                    right-2
+                                    top-2
+                                    rounded-full
+                                    bg-black/70
+                                    px-2.5
+                                    py-1
+                                    text-[9px]
+                                    font-black
+                                    text-white
+                                    backdrop-blur
+                                "
+                            >
+                                قبل
+                            </span>
 
-                                <span class="rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white backdrop-blur">
+                        </div>
 
-                                    {{ $item->title }}
 
-                                </span>
+                        {{-- After --}}
 
-                            </div>
+                        <div
+                            class="
+                                relative
+                                aspect-[4/3]
+                                overflow-hidden
+                                bg-zinc-900
+                            "
+                        >
+
+                            <img
+                                src="{{ $afterUrl }}"
+                                alt="{{
+                                    ($item->alt_text
+                                        ?: $item->title
+                                        ?: 'نمونه‌کار'
+                                    ) . ' - بعد'
+                                }}"
+                                loading="lazy"
+                                class="
+                                    h-full
+                                    w-full
+                                    object-cover
+                                    transition
+                                    duration-500
+                                    group-hover:scale-[1.03]
+                                "
+                            >
+
+
+                            <span
+                                class="
+                                    absolute
+                                    right-2
+                                    top-2
+                                    rounded-full
+                                    bg-primary
+                                    px-2.5
+                                    py-1
+                                    text-[9px]
+                                    font-black
+                                    text-black
+                                "
+                            >
+                                بعد
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    {{-- Content --}}
+
+                    <div class="p-4">
+
+                        <h3
+                            class="
+                                truncate
+                                text-sm
+                                font-black
+                                text-text
+                            "
+                        >
+                            {{ $item->title ?: 'نمونه‌کار آرایشگاه' }}
+                        </h3>
+
+
+                        @if($item->description)
+
+                            <p
+                                class="
+                                    mt-2
+                                    line-clamp-2
+                                    text-xs
+                                    leading-6
+                                    text-muted
+                                "
+                            >
+                                {{ $item->description }}
+                            </p>
 
                         @endif
 
                     </div>
 
-                @endforeach
+                </article>
+
+            @endforeach
+
+        </div>
+
+
+        {{-- =========================================================
+            Total Count
+        ========================================================== --}}
+
+        @if($hasMore)
+
+            <div class="mt-6 text-center">
+
+                <p class="text-xs text-muted">
+                    {{ $totalCount }} نمونه‌کار در گالری ثبت شده است.
+                </p>
 
             </div>
 

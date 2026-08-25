@@ -9,13 +9,31 @@ use App\Models\Salon;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class SalonController extends Controller
 {
+    /*
+    |--------------------------------------------------------------------------
+    | Hero Image Settings
+    |--------------------------------------------------------------------------
+    |
+    | Every uploaded Hero image is converted to this exact size.
+    |
+    */
+
+    private const HERO_WIDTH = 1920;
+
+    private const HERO_HEIGHT = 900;
+
+    private const HERO_QUALITY = 82;
+
+
     /*
     |--------------------------------------------------------------------------
     | Index
@@ -129,9 +147,7 @@ class SalonController extends Controller
     */
 
     /**
-     * Create barber account, salon and QR token.
-     *
-     * User + Salon are created atomically.
+     * Create barber account, salon, QR and branding.
      */
     public function store(
         StoreSalonRequest $request
@@ -140,96 +156,171 @@ class SalonController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Create User + Salon + QR
+        | Logo
         |--------------------------------------------------------------------------
         */
 
-        $salon = DB::transaction(
-            function () use ($validated) {
-
-                /*
-                |--------------------------------------------------------------------------
-                | Barber User
-                |--------------------------------------------------------------------------
-                |
-                | Current project roles:
-                |
-                | 1 = Super Admin
-                | 2 = Barber
-                |
-                */
-
-                $user = User::create([
-
-                    'role_id' => 2,
-
-                    'full_name' =>
-                        $validated['full_name'],
-
-                    'phone' =>
-                        $validated['user_phone'],
-
-                    'email' =>
-                        $validated['email'],
-
-                    'password' =>
-                        Hash::make(
-                            $validated['password']
-                        ),
-
-                ]);
+        $logoPath = $this->storeImage(
+            $request->file('logo'),
+            'salons/logos'
+        );
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | Salon
-                |--------------------------------------------------------------------------
-                */
+        /*
+        |--------------------------------------------------------------------------
+        | Hero Cover
+        |--------------------------------------------------------------------------
+        |
+        | The original image is NOT stored.
+        |
+        | It is converted to:
+        |
+        | 1920 x 900
+        | WebP
+        |
+        */
 
-                return Salon::create([
+        $coverPath = $this->processHeroImage(
+            $request->file('cover')
+        );
 
-                    'user_id' =>
-                        $user->id,
 
-                    'name' =>
-                        $validated['name'],
+        try {
 
-                    'slug' =>
-                        $this->generateUniqueSlug(
-                            $validated['name']
-                        ),
+            /*
+            |--------------------------------------------------------------------------
+            | Create User + Salon
+            |--------------------------------------------------------------------------
+            */
+
+            $salon = DB::transaction(
+                function () use (
+                    $validated,
+                    $logoPath,
+                    $coverPath
+                ) {
 
                     /*
                     |--------------------------------------------------------------------------
-                    | QR Token
+                    | Barber
                     |--------------------------------------------------------------------------
                     |
-                    | QR توسط Super Admin همان لحظه ایجاد می‌شود.
+                    | 1 = Super Admin
+                    | 2 = Barber
                     |
                     */
 
-                    'qr_token' =>
-                        $this->generateUniqueQrToken(),
+                    $user = User::create([
 
-                    'phone' =>
-                        $validated['phone'] ?? null,
+                        'role_id' => 2,
 
-                    'address' =>
-                        $validated['address'] ?? null,
+                        'full_name' =>
+                            $validated['full_name'],
 
-                    'instagram' =>
-                        $validated['instagram'] ?? null,
+                        'phone' =>
+                            $validated['user_phone'],
 
-                    'description' =>
-                        $validated['description'] ?? null,
+                        'email' =>
+                            $validated['email'],
 
-                    'is_active' =>
-                        true,
+                        'password' =>
+                            Hash::make(
+                                $validated['password']
+                            ),
 
-                ]);
+                    ]);
 
-            }
-        );
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Salon
+                    |--------------------------------------------------------------------------
+                    */
+
+                    return Salon::create([
+
+                        'user_id' =>
+                            $user->id,
+
+                        'name' =>
+                            $validated['name'],
+
+                        'slug' =>
+                            $this->generateUniqueSlug(
+                                $validated['name']
+                            ),
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | QR
+                        |--------------------------------------------------------------------------
+                        */
+
+                        'qr_token' =>
+                            $this->generateUniqueQrToken(),
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Contact
+                        |--------------------------------------------------------------------------
+                        */
+
+                        'phone' =>
+                            $validated['phone'] ?? null,
+
+                        'address' =>
+                            $validated['address'] ?? null,
+
+                        'instagram' =>
+                            $validated['instagram'] ?? null,
+
+                        'description' =>
+                            $validated['description'] ?? null,
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Branding
+                        |--------------------------------------------------------------------------
+                        */
+
+                        'logo' =>
+                            $logoPath,
+
+                        'cover' =>
+                            $coverPath,
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Status
+                        |--------------------------------------------------------------------------
+                        */
+
+                        'is_active' =>
+                            true,
+
+                    ]);
+
+                }
+            );
+
+        } catch (\Throwable $e) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Cleanup Files If Database Fails
+            |--------------------------------------------------------------------------
+            */
+
+            $this->deleteImage(
+                $logoPath
+            );
+
+            $this->deleteImage(
+                $coverPath
+            );
+
+            throw $e;
+        }
 
 
         /*
@@ -239,10 +330,12 @@ class SalonController extends Controller
         */
 
         return redirect()
-            ->route('admin.salons.index')
+            ->route(
+                'admin.salons.index'
+            )
             ->with(
                 'success',
-                "سالن «{$salon->name}»، حساب آرایشگر و QR Code با موفقیت ساخته شدند."
+                "سالن «{$salon->name}»، حساب آرایشگر، QR Code و تصویر Hero با موفقیت ساخته شدند."
             );
     }
 
@@ -275,13 +368,14 @@ class SalonController extends Controller
     */
 
     /**
-     * Update salon and barber account.
+     * Update salon, barber account and branding.
      */
     public function update(
         UpdateSalonRequest $request,
         Salon $salon
     ): RedirectResponse {
         $validated = $request->validated();
+
 
         /*
         |--------------------------------------------------------------------------
@@ -300,103 +394,243 @@ class SalonController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Update User + Salon
+        | Existing Images
         |--------------------------------------------------------------------------
         */
 
-        DB::transaction(
-            function () use (
-                $validated,
-                $request,
-                $salon,
-                $user
-            ) {
+        $oldLogoPath = $salon->logo;
 
-                /*
-                |--------------------------------------------------------------------------
-                | User Data
-                |--------------------------------------------------------------------------
-                */
-
-                $userData = [
-
-                    'full_name' =>
-                        $validated['full_name'],
-
-                    'phone' =>
-                        $validated['user_phone'],
-
-                    'email' =>
-                        $validated['email'],
-
-                ];
+        $oldCoverPath = $salon->cover;
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | Optional Password
-                |--------------------------------------------------------------------------
-                */
+        /*
+        |--------------------------------------------------------------------------
+        | New Images
+        |--------------------------------------------------------------------------
+        */
 
-                if (
-                    filled(
-                        $validated['password'] ?? null
-                    )
+        $newLogoPath = null;
+
+        $newCoverPath = null;
+
+
+        try {
+
+            /*
+            |--------------------------------------------------------------------------
+            | New Logo
+            |--------------------------------------------------------------------------
+            */
+
+            if ($request->hasFile('logo')) {
+
+                $newLogoPath = $this->storeImage(
+                    $request->file('logo'),
+                    'salons/logos'
+                );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | New Hero
+            |--------------------------------------------------------------------------
+            */
+
+            if ($request->hasFile('cover')) {
+
+                $newCoverPath =
+                    $this->processHeroImage(
+                        $request->file('cover')
+                    );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Update Database
+            |--------------------------------------------------------------------------
+            */
+
+            DB::transaction(
+                function () use (
+                    $validated,
+                    $request,
+                    $salon,
+                    $user,
+                    $newLogoPath,
+                    $newCoverPath
                 ) {
 
-                    $userData['password'] =
-                        Hash::make(
-                            $validated['password']
-                        );
+                    /*
+                    |--------------------------------------------------------------------------
+                    | User
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $userData = [
+
+                        'full_name' =>
+                            $validated['full_name'],
+
+                        'phone' =>
+                            $validated['user_phone'],
+
+                        'email' =>
+                            $validated['email'],
+
+                    ];
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Optional Password
+                    |--------------------------------------------------------------------------
+                    */
+
+                    if (
+                        filled(
+                            $validated['password'] ?? null
+                        )
+                    ) {
+
+                        $userData['password'] =
+                            Hash::make(
+                                $validated['password']
+                            );
+                    }
+
+
+                    $user->update(
+                        $userData
+                    );
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Salon
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $salonData = [
+
+                        'name' =>
+                            $validated['name'],
+
+                        'phone' =>
+                            $validated['phone'] ?? null,
+
+                        'address' =>
+                            $validated['address'] ?? null,
+
+                        'instagram' =>
+                            $validated['instagram'] ?? null,
+
+                        'description' =>
+                            $validated['description'] ?? null,
+
+                        'is_active' =>
+                            $request->boolean(
+                                'is_active'
+                            ),
+
+                    ];
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Logo
+                    |--------------------------------------------------------------------------
+                    */
+
+                    if ($newLogoPath !== null) {
+
+                        $salonData['logo'] =
+                            $newLogoPath;
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Hero
+                    |--------------------------------------------------------------------------
+                    */
+
+                    if ($newCoverPath !== null) {
+
+                        $salonData['cover'] =
+                            $newCoverPath;
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Save Salon
+                    |--------------------------------------------------------------------------
+                    |
+                    | QR token intentionally stays unchanged.
+                    |
+                    */
+
+                    $salon->update(
+                        $salonData
+                    );
+
                 }
+            );
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | Update User
-                |--------------------------------------------------------------------------
-                */
+            /*
+            |--------------------------------------------------------------------------
+            | Delete Old Logo
+            |--------------------------------------------------------------------------
+            */
 
-                $user->update(
-                    $userData
+            if (
+                $newLogoPath !== null &&
+                filled($oldLogoPath)
+            ) {
+
+                $this->deleteImage(
+                    $oldLogoPath
                 );
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Update Salon
-                |--------------------------------------------------------------------------
-                |
-                | QR Token intentionally remains unchanged.
-                |
-                */
-
-                $salon->update([
-
-                    'name' =>
-                        $validated['name'],
-
-                    'phone' =>
-                        $validated['phone'] ?? null,
-
-                    'address' =>
-                        $validated['address'] ?? null,
-
-                    'instagram' =>
-                        $validated['instagram'] ?? null,
-
-                    'description' =>
-                        $validated['description'] ?? null,
-
-                    'is_active' =>
-                        $request->boolean(
-                            'is_active'
-                        ),
-
-                ]);
-
             }
-        );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Delete Old Hero
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                $newCoverPath !== null &&
+                filled($oldCoverPath)
+            ) {
+
+                $this->deleteImage(
+                    $oldCoverPath
+                );
+            }
+
+        } catch (\Throwable $e) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Cleanup New Files
+            |--------------------------------------------------------------------------
+            */
+
+            $this->deleteImage(
+                $newLogoPath
+            );
+
+            $this->deleteImage(
+                $newCoverPath
+            );
+
+            throw $e;
+        }
 
 
         /*
@@ -411,7 +645,7 @@ class SalonController extends Controller
             )
             ->with(
                 'success',
-                'اطلاعات سالن و حساب آرایشگر با موفقیت بروزرسانی شد.'
+                'اطلاعات سالن، آرایشگر و تصاویر با موفقیت بروزرسانی شد.'
             );
     }
 
@@ -424,14 +658,16 @@ class SalonController extends Controller
 
     /**
      * Delete salon and barber account.
-     *
-     * IMPORTANT:
-     * Related records must have appropriate foreign-key behavior.
      */
     public function destroy(
         Salon $salon
     ): RedirectResponse {
         $user = $salon->user;
+
+        $logoPath = $salon->logo;
+
+        $coverPath = $salon->cover;
+
 
         DB::transaction(
             function () use (
@@ -450,7 +686,7 @@ class SalonController extends Controller
 
                 /*
                 |--------------------------------------------------------------------------
-                | Delete User
+                | Delete Owner
                 |--------------------------------------------------------------------------
                 */
 
@@ -462,14 +698,404 @@ class SalonController extends Controller
         );
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Delete Images
+        |--------------------------------------------------------------------------
+        */
+
+        $this->deleteImage(
+            $logoPath
+        );
+
+        $this->deleteImage(
+            $coverPath
+        );
+
+
         return redirect()
             ->route(
                 'admin.salons.index'
             )
             ->with(
                 'success',
-                'سالن و حساب آرایشگر با موفقیت حذف شدند.'
+                'سالن، حساب آرایشگر و تصاویر با موفقیت حذف شدند.'
             );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Store Normal Image
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Store normal uploaded image.
+     */
+    private function storeImage(
+        ?UploadedFile $file,
+        string $directory
+    ): ?string {
+        if (!$file) {
+            return null;
+        }
+
+        return $file->store(
+            $directory,
+            'public'
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Process Hero Image
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Convert uploaded Hero image to:
+     *
+     * 1920 x 900
+     * WebP
+     *
+     * The image is cropped proportionally so it is never stretched.
+     */
+    private function processHeroImage(
+        ?UploadedFile $file
+    ): ?string {
+        if (!$file) {
+            return null;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Read Original Image
+        |--------------------------------------------------------------------------
+        */
+
+        $contents = file_get_contents(
+            $file->getRealPath()
+        );
+
+        if ($contents === false) {
+
+            throw new \RuntimeException(
+                'امکان خواندن تصویر Hero وجود ندارد.'
+            );
+        }
+
+
+        $source = @imagecreatefromstring(
+            $contents
+        );
+
+        if (!$source) {
+
+            throw new \RuntimeException(
+                'فرمت تصویر Hero پشتیبانی نمی‌شود.'
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Original Dimensions
+        |--------------------------------------------------------------------------
+        */
+
+        $sourceWidth =
+            imagesx($source);
+
+        $sourceHeight =
+            imagesy($source);
+
+
+        if (
+            $sourceWidth < 1 ||
+            $sourceHeight < 1
+        ) {
+
+            imagedestroy($source);
+
+            throw new \RuntimeException(
+                'ابعاد تصویر Hero معتبر نیست.'
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Target Dimensions
+        |--------------------------------------------------------------------------
+        */
+
+        $targetWidth =
+            self::HERO_WIDTH;
+
+        $targetHeight =
+            self::HERO_HEIGHT;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Calculate Crop
+        |--------------------------------------------------------------------------
+        |
+        | Target ratio:
+        |
+        | 1920 / 900
+        | = 2.1333
+        |
+        | We crop the original image to this ratio.
+        |
+        */
+
+        $sourceRatio =
+            $sourceWidth / $sourceHeight;
+
+        $targetRatio =
+            $targetWidth / $targetHeight;
+
+
+        if ($sourceRatio > $targetRatio) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Source is wider.
+            |--------------------------------------------------------------------------
+            |
+            | Crop left/right.
+            |
+            */
+
+            $cropHeight =
+                $sourceHeight;
+
+            $cropWidth =
+                (int) round(
+                    $sourceHeight *
+                    $targetRatio
+                );
+
+            $sourceX =
+                (int) floor(
+                    ($sourceWidth - $cropWidth) / 2
+                );
+
+            $sourceY = 0;
+
+        } else {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Source is taller.
+            |--------------------------------------------------------------------------
+            |
+            | Crop top/bottom.
+            |
+            */
+
+            $cropWidth =
+                $sourceWidth;
+
+            $cropHeight =
+                (int) round(
+                    $sourceWidth /
+                    $targetRatio
+                );
+
+            $sourceX = 0;
+
+            $sourceY =
+                (int) floor(
+                    ($sourceHeight - $cropHeight) / 2
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Create Target Canvas
+        |--------------------------------------------------------------------------
+        */
+
+        $destination =
+            imagecreatetruecolor(
+                $targetWidth,
+                $targetHeight
+            );
+
+
+        if (!$destination) {
+
+            imagedestroy($source);
+
+            throw new \RuntimeException(
+                'ساخت تصویر Hero امکان‌پذیر نیست.'
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Image Quality
+        |--------------------------------------------------------------------------
+        */
+
+        imagealphablending(
+            $destination,
+            true
+        );
+
+        imagesavealpha(
+            $destination,
+            false
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Resize + Crop
+        |--------------------------------------------------------------------------
+        */
+
+        $success = imagecopyresampled(
+            $destination,
+            $source,
+
+            0,
+            0,
+
+            $sourceX,
+            $sourceY,
+
+            $targetWidth,
+            $targetHeight,
+
+            $cropWidth,
+            $cropHeight
+        );
+
+
+        if (!$success) {
+
+            imagedestroy($source);
+            imagedestroy($destination);
+
+            throw new \RuntimeException(
+                'پردازش تصویر Hero با خطا مواجه شد.'
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Encode WebP
+        |--------------------------------------------------------------------------
+        */
+
+        ob_start();
+
+        $webpCreated = imagewebp(
+            $destination,
+            null,
+            self::HERO_QUALITY
+        );
+
+        $webpData = ob_get_clean();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Free Memory
+        |--------------------------------------------------------------------------
+        */
+
+        imagedestroy(
+            $source
+        );
+
+        imagedestroy(
+            $destination
+        );
+
+
+        if (
+            !$webpCreated ||
+            !$webpData
+        ) {
+
+            throw new \RuntimeException(
+                'تبدیل تصویر Hero به WebP انجام نشد.'
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Generate Filename
+        |--------------------------------------------------------------------------
+        */
+
+        $filename =
+            Str::uuid()->toString() .
+            '.webp';
+
+
+        $path =
+            'salons/covers/' .
+            $filename;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Store WebP
+        |--------------------------------------------------------------------------
+        */
+
+        $stored = Storage::disk('public')
+            ->put(
+                $path,
+                $webpData
+            );
+
+
+        if (!$stored) {
+
+            throw new \RuntimeException(
+                'ذخیره تصویر Hero امکان‌پذیر نیست.'
+            );
+        }
+
+
+        return $path;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Delete Image
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Delete image from public disk.
+     */
+    private function deleteImage(
+        ?string $path
+    ): void {
+        if (
+            filled($path) &&
+            Storage::disk('public')->exists($path)
+        ) {
+
+            Storage::disk('public')->delete(
+                $path
+            );
+        }
     }
 
 
@@ -480,7 +1106,7 @@ class SalonController extends Controller
     */
 
     /**
-     * Generate a unique salon slug.
+     * Generate unique salon slug.
      */
     private function generateUniqueSlug(
         string $name
@@ -492,7 +1118,7 @@ class SalonController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Persian / Empty Slug Fallback
+        | Persian Name Fallback
         |--------------------------------------------------------------------------
         */
 
@@ -503,7 +1129,6 @@ class SalonController extends Controller
                 Str::lower(
                     Str::random(8)
                 );
-
         }
 
 
@@ -514,7 +1139,7 @@ class SalonController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Ensure Unique Slug
+        | Ensure Unique
         |--------------------------------------------------------------------------
         */
 
@@ -533,7 +1158,6 @@ class SalonController extends Controller
                 $counter;
 
             $counter++;
-
         }
 
 
@@ -548,7 +1172,7 @@ class SalonController extends Controller
     */
 
     /**
-     * Generate a unique QR token.
+     * Generate unique QR token.
      */
     private function generateUniqueQrToken(): string
     {

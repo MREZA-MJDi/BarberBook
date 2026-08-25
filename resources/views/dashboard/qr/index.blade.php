@@ -1,13 +1,40 @@
+{{-- resources/views/dashboard/qr/index.blade.php --}}
+
 <x-layouts.dashboard>
 
     @php
 
-        $hasQr = filled($salon?->qr_token);
+        /*
+        |--------------------------------------------------------------------------
+        | QR Status
+        |--------------------------------------------------------------------------
+        */
+
+        $hasQr =
+            filled(
+                $salon?->qr_token
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Public Salon URL
+        |--------------------------------------------------------------------------
+        |
+        | New public URL:
+        |
+        | /salon/{slug}
+        |
+        */
 
         $publicUrl = $hasQr
-            ? route('salon.public', [
-                'qr_token' => $salon->qr_token,
-            ])
+            ? route(
+                'salon.public',
+                [
+                    'salon' =>
+                        $salon->slug,
+                ]
+            )
             : null;
 
     @endphp
@@ -566,7 +593,6 @@
 
                                 <div class="mt-6 space-y-3">
 
-
                                     <div class="flex items-center gap-3">
 
                                         <span
@@ -583,11 +609,7 @@
                                         >
 
                                             <x-lucide-check
-                                                class="
-                                                    h-4
-                                                    w-4
-                                                    text-green-500
-                                                "
+                                                class="h-4 w-4 text-green-500"
                                             />
 
                                         </span>
@@ -621,11 +643,7 @@
                                         >
 
                                             <x-lucide-check
-                                                class="
-                                                    h-4
-                                                    w-4
-                                                    text-green-500
-                                                "
+                                                class="h-4 w-4 text-green-500"
                                             />
 
                                         </span>
@@ -659,11 +677,7 @@
                                         >
 
                                             <x-lucide-check
-                                                class="
-                                                    h-4
-                                                    w-4
-                                                    text-green-500
-                                                "
+                                                class="h-4 w-4 text-green-500"
                                             />
 
                                         </span>
@@ -924,7 +938,9 @@
                         </div>
 
 
-                        {{-- QR Details --}}
+                        {{-- =================================================
+                            QR Details
+                        ================================================== --}}
 
                         <div
                             class="
@@ -961,11 +977,50 @@
                             </div>
 
 
-                            {{-- Token --}}
+                            {{-- Slug --}}
 
                             <div
                                 class="
                                     mt-5
+                                    rounded-2xl
+                                    border
+                                    border-zinc-800
+                                    bg-black/20
+                                    p-4
+                                "
+                            >
+
+                                <p
+                                    class="
+                                        text-xs
+                                        font-bold
+                                        text-zinc-500
+                                    "
+                                >
+                                    آدرس عمومی سالن
+                                </p>
+
+                                <p
+                                    dir="ltr"
+                                    class="
+                                        mt-2
+                                        break-all
+                                        text-xs
+                                        font-black
+                                        text-orange-500
+                                    "
+                                >
+                                    /salon/{{ $salon->slug }}
+                                </p>
+
+                            </div>
+
+
+                            {{-- QR Token --}}
+
+                            <div
+                                class="
+                                    mt-4
                                     rounded-2xl
                                     border
                                     border-orange-500/10
@@ -981,7 +1036,7 @@
                                         text-zinc-500
                                     "
                                 >
-                                    کد اختصاصی QR
+                                    شناسه داخلی QR
                                 </p>
 
                                 <p
@@ -992,7 +1047,7 @@
                                         text-xs
                                         font-black
                                         tracking-[0.16em]
-                                        text-orange-500
+                                        text-zinc-500
                                     "
                                 >
                                     {{ $salon->qr_token }}
@@ -1027,7 +1082,7 @@
                                             text-zinc-500
                                         "
                                     >
-                                        لینک اختصاصی رزرو
+                                        لینک اختصاصی سالن
                                     </p>
 
                                 </div>
@@ -1448,7 +1503,6 @@
 
                 <div class="mt-6 space-y-5">
 
-
                     <div class="flex gap-3">
 
                         <div
@@ -1677,13 +1731,33 @@
             class="hidden"
         >
 
-            <div class="mx-auto max-w-xl p-10 text-center">
+            <div
+                class="
+                    mx-auto
+                    max-w-xl
+                    p-10
+                    text-center
+                "
+            >
 
-                <h1 class="text-3xl font-black text-black">
+                <h1
+                    class="
+                        text-3xl
+                        font-black
+                        text-black
+                    "
+                >
                     {{ $salon->name }}
                 </h1>
 
-                <p class="mt-3 text-sm text-black">
+
+                <p
+                    class="
+                        mt-3
+                        text-sm
+                        text-black
+                    "
+                >
                     برای رزرو نوبت، QR Code را اسکن کنید.
                 </p>
 
@@ -1701,7 +1775,9 @@
                             [&>svg]:w-full
                         "
                     >
+
                         {!! $qrSvg !!}
+
                     </div>
 
                 @endif
@@ -1733,6 +1809,7 @@
     @if($hasQr)
 
         <style>
+
             @media print {
 
                 body * {
@@ -1755,6 +1832,7 @@
                 }
 
             }
+
         </style>
 
     @endif

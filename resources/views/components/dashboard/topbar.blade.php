@@ -3,14 +3,22 @@
 @php
 
     use App\Models\Booking;
+    use Morilog\Jalali\Jalalian;
 
     $user = auth()->user();
 
     $salon = $user?->salon;
 
-    $fullName = $user?->full_name ?? 'آرایشگر';
+    $fullName =
+        $user?->full_name
+        ?? 'آرایشگر';
 
-    $initial = mb_substr($fullName, 0, 1);
+    $initial =
+        mb_substr(
+            $fullName,
+            0,
+            1
+        );
 
 
     /*
@@ -18,54 +26,150 @@
     | Recent Booking Notifications
     |--------------------------------------------------------------------------
     |
-    | فعلاً Notification را از رزروهای pending خود سالن می‌گیریم.
-    | بنابراین به محض ثبت رزرو جدید توسط مشتری، اینجا قابل نمایش است.
+    | فعلاً Notification از رزروهای pending سالن
+    | ساخته می‌شود.
+    |
+    | تاریخ رزرو در اینجا به Jalali تبدیل می‌شود.
     |
     */
 
     $notifications = collect();
 
+
     if ($salon) {
 
         $notifications = Booking::query()
-            ->where('salon_id', $salon->id)
-            ->where('status', 'pending')
+            ->where(
+                'salon_id',
+                $salon->id
+            )
+            ->where(
+                'status',
+                'pending'
+            )
             ->latest('created_at')
             ->take(8)
             ->get()
             ->map(function (Booking $booking) {
 
-                return [
-                    'booking_id' => $booking->id,
+                /*
+                |--------------------------------------------------------------------------
+                | Booking Date → Jalali
+                |--------------------------------------------------------------------------
+                */
 
-                    'title' => 'رزرو جدید',
+                $bookingJalaliDate = null;
+
+
+                if ($booking->booking_date) {
+
+                    try {
+
+                        $bookingJalaliDate =
+                            Jalalian::fromCarbon(
+                                \Carbon\Carbon::parse(
+                                    $booking->booking_date
+                                )
+                            )->format(
+                                'j %B Y'
+                            );
+
+                    } catch (\Throwable) {
+
+                        $bookingJalaliDate =
+                            $booking->booking_date;
+
+                    }
+
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Booking Time
+                |--------------------------------------------------------------------------
+                */
+
+                $bookingTime = null;
+
+
+                if ($booking->booking_time) {
+
+                    $bookingTime =
+                        substr(
+                            $booking->booking_time,
+                            0,
+                            5
+                        );
+
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Created At
+                |--------------------------------------------------------------------------
+                |
+                | diffForHumans فقط برای نمایش
+                | «چند دقیقه پیش» استفاده می‌شود.
+                |
+                */
+
+                $createdAt = null;
+
+
+                if ($booking->created_at) {
+
+                    $createdAt =
+                        $booking->created_at
+                            ->locale('fa')
+                            ->diffForHumans();
+
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Notification Data
+                |--------------------------------------------------------------------------
+                */
+
+                return [
+
+                    'booking_id' =>
+                        $booking->id,
+
+                    'title' =>
+                        'رزرو جدید',
 
                     'message' =>
-                        ($booking->customer_name ?? 'مشتری') .
-                        ' یک نوبت جدید ثبت کرده است.',
+                        ($booking->customer_name ?? 'مشتری')
+                        . ' یک نوبت جدید ثبت کرده است.',
 
-                    'date' => $booking->booking_date
-                        ? \Carbon\Carbon::parse($booking->booking_date)
-                            ->locale('fa')
-                            ->translatedFormat('j F')
-                        : null,
+                    'date' =>
+                        $bookingJalaliDate,
 
-                    'time' => $booking->booking_time
-                        ? substr($booking->booking_time, 0, 5)
-                        : null,
+                    'time' =>
+                        $bookingTime,
 
-                    'created_at' => $booking->created_at
-                        ? $booking->created_at
-                            ->locale('fa')
-                            ->diffForHumans()
-                        : null,
+                    'created_at' =>
+                        $createdAt,
+
                 ];
 
             });
 
     }
 
-    $notificationsCount = $notifications->count();
+
+    /*
+    |--------------------------------------------------------------------------
+    | Notification Count
+    |--------------------------------------------------------------------------
+    */
+
+    $notificationsCount =
+        $notifications->count();
 
 @endphp
 
@@ -257,7 +361,9 @@
                 </button>
 
 
-                {{-- Notification Dropdown --}}
+                {{-- =================================================
+                    Notification Dropdown
+                ================================================== --}}
 
                 <div
                     x-show="open"
@@ -327,7 +433,9 @@
                     </div>
 
 
-                    {{-- Notification List --}}
+                    {{-- =================================================
+                        Notification List
+                    ================================================== --}}
 
                     <div
                         class="
@@ -377,7 +485,9 @@
                                     "
                                 >
 
-                                    <x-lucide-calendar-days class="h-5 w-5" />
+                                    <x-lucide-calendar-days
+                                        class="h-5 w-5"
+                                    />
 
                                 </div>
 
@@ -433,8 +543,11 @@
                                     </p>
 
 
+                                    {{-- Booking Date + Time --}}
+
                                     @if(
-                                        $notification['date'] ||
+                                        $notification['date']
+                                        ||
                                         $notification['time']
                                     )
 
@@ -499,6 +612,8 @@
 
                                     @endif
 
+
+                                    {{-- Created At --}}
 
                                     <div
                                         class="
@@ -573,7 +688,9 @@
                                     "
                                 >
 
-                                    <x-lucide-bell-off class="h-5 w-5" />
+                                    <x-lucide-bell-off
+                                        class="h-5 w-5"
+                                    />
 
                                 </div>
 
@@ -608,7 +725,9 @@
                     </div>
 
 
-                    {{-- Footer --}}
+                    {{-- =================================================
+                        Footer
+                    ================================================== --}}
 
                     <div class="border-t border-zinc-800 p-3">
 
@@ -726,7 +845,14 @@
                     "
                 >
 
-                    <div class="border-b border-zinc-800 px-4 py-4">
+                    <div
+                        class="
+                            border-b
+                            border-zinc-800
+                            px-4
+                            py-4
+                        "
+                    >
 
                         <p class="text-sm font-bold text-white">
                             {{ $fullName }}
@@ -759,7 +885,9 @@
                             "
                         >
 
-                            <x-lucide-user-round class="h-4 w-4" />
+                            <x-lucide-user-round
+                                class="h-4 w-4"
+                            />
 
                             پروفایل من
 
@@ -792,7 +920,9 @@
                                 "
                             >
 
-                                <x-lucide-log-out class="h-4 w-4" />
+                                <x-lucide-log-out
+                                    class="h-4 w-4"
+                                />
 
                                 خروج از حساب
 

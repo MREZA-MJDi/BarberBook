@@ -677,7 +677,7 @@
 
 
                                 <a
-                                    href="{{ route('salon.public', ['qr_token' => $salon->qr_token]) }}"
+                                    href="{{ route('salon.public', ['salon' => $salon->slug]) }}"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     class="
@@ -950,7 +950,7 @@
 
 
                     <a
-                        href="{{ route('salon.public', ['qr_token' => $salon->qr_token]) }}"
+                        href="{{ route('salon.public', ['salon' => $salon->slug]) }}"
                         target="_blank"
                         rel="noopener noreferrer"
                         class="

@@ -143,10 +143,10 @@
             <div class="mt-5">
 
                 <a
-                    href="{{ route('salon.public', [
-                        'qr_token' => $service->salon->qr_token,
-                        'service_id' => $service->id,
-                    ]) }}#booking"
+                    href="{{route('salon.public', [
+    'salon' => $service->salon->slug,
+    'service_id' => $service->id,
+]) }}#booking"
                     class="
                         flex
                         w-full

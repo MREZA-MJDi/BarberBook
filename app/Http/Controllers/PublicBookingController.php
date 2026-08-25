@@ -19,7 +19,8 @@ class PublicBookingController extends Controller
      */
     public function __construct(
         protected BookingAvailabilityService $availabilityService
-    ) {
+    )
+    {
     }
 
     /*
@@ -35,7 +36,8 @@ class PublicBookingController extends Controller
      */
     public function create(
         string $qr_token
-    ): View {
+    ): View
+    {
 
         /*
         |--------------------------------------------------------------------------
@@ -97,7 +99,7 @@ class PublicBookingController extends Controller
 
             $selectedService = $salon->services->firstWhere(
                 'id',
-                (int) request('service_id')
+                (int)request('service_id')
             );
         }
 
@@ -168,8 +170,9 @@ class PublicBookingController extends Controller
      */
     public function store(
         StorePublicBookingRequest $request,
-        string $qr_token
-    ): RedirectResponse {
+        string                    $qr_token
+    ): RedirectResponse
+    {
 
         /*
         |--------------------------------------------------------------------------
@@ -297,6 +300,7 @@ class PublicBookingController extends Controller
 
         $booking = Booking::create([
 
+
             'salon_id' =>
                 $salon->id,
 
@@ -371,7 +375,8 @@ class PublicBookingController extends Controller
     public function success(
         string $qr_token,
         string $booking
-    ): View {
+    ): View
+    {
 
         $salon = Salon::query()
             ->where('qr_token', $qr_token)
@@ -414,7 +419,8 @@ class PublicBookingController extends Controller
      */
     private function parseBookingDate(
         ?string $date
-    ): ?Carbon {
+    ): ?Carbon
+    {
 
         if (!$date) {
             return null;
@@ -453,8 +459,8 @@ class PublicBookingController extends Controller
                 );
 
                 if (
-                    (int) $year >= 1200 &&
-                    (int) $year <= 1500
+                    (int)$year >= 1200 &&
+                    (int)$year <= 1500
                 ) {
 
                     return Jalalian::fromFormat(

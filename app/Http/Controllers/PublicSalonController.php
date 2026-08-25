@@ -35,7 +35,7 @@ class PublicSalonController extends Controller
     ): View {
 
         /*
-        |-----------------------------------------------------re---------------------
+        |--------------------------------------------------------------------------
         | Find Active Salon
         |--------------------------------------------------------------------------
         */
@@ -44,6 +44,7 @@ class PublicSalonController extends Controller
             ->where('qr_token', $qr_token)
             ->where('is_active', true)
             ->with([
+
                 /*
                 |--------------------------------------------------------------------------
                 | Active Services
@@ -68,6 +69,7 @@ class PublicSalonController extends Controller
                         ->orderBy('sort_order')
                         ->orderBy('id');
                 },
+
             ])
             ->firstOrFail();
 
@@ -80,7 +82,10 @@ class PublicSalonController extends Controller
 
         $reviews = $salon->reviews()
             ->where('status', 'published')
-            ->with('user')
+            ->with([
+                'user',
+                'booking.service',
+            ])
             ->latest()
             ->get();
 
@@ -102,12 +107,6 @@ class PublicSalonController extends Controller
         |--------------------------------------------------------------------------
         | Selected Date
         |--------------------------------------------------------------------------
-        |
-        | Public UI uses Jalali dates.
-        |
-        | Example:
-        | 1405/05/25
-        |
         */
 
         $requestedDate = request('date');
@@ -116,17 +115,9 @@ class PublicSalonController extends Controller
             ? $this->parseBookingDate($requestedDate)
             : Carbon::today();
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Date Fallback
-        |--------------------------------------------------------------------------
-        */
-
         if (!$selectedDate) {
             $selectedDate = Carbon::today();
         }
-
 
         $selectedDate = $selectedDate
             ->copy()
@@ -148,10 +139,6 @@ class PublicSalonController extends Controller
         |--------------------------------------------------------------------------
         | Selected Service
         |--------------------------------------------------------------------------
-        |
-        | The selected service must come from this salon's
-        | active services collection.
-        |
         */
 
         $selectedService = null;
@@ -171,8 +158,7 @@ class PublicSalonController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $selectedTime =
-            request('booking_time');
+        $selectedTime = request('booking_time');
 
 
         /*
@@ -269,30 +255,15 @@ class PublicSalonController extends Controller
         ?string $date
     ): ?Carbon {
 
-        /*
-        |--------------------------------------------------------------------------
-        | Empty Date
-        |--------------------------------------------------------------------------
-        */
-
         if (!$date) {
             return null;
         }
 
-
         $date = trim($date);
-
 
         if ($date === '') {
             return null;
         }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Normalize Separator
-        |--------------------------------------------------------------------------
-        */
 
         $normalized = str_replace(
             '-',
@@ -303,7 +274,7 @@ class PublicSalonController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Try Jalali
+        | Jalali
         |--------------------------------------------------------------------------
         */
 
@@ -321,13 +292,6 @@ class PublicSalonController extends Controller
                     $normalized
                 );
 
-
-                /*
-                |--------------------------------------------------------------------------
-                | Prevent Gregorian Year From Being Interpreted As Jalali
-                |--------------------------------------------------------------------------
-                */
-
                 if (
                     (int) $year >= 1200 &&
                     (int) $year <= 1500
@@ -343,17 +307,13 @@ class PublicSalonController extends Controller
             }
 
         } catch (\Throwable) {
-
-            /*
-            | Continue with Gregorian parser.
-            */
-
+            // Continue with Gregorian parser.
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Try Gregorian
+        | Gregorian
         |--------------------------------------------------------------------------
         */
 

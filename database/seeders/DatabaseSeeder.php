@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             SalonSeeder::class,
             ServiceSeeder::class,
             WorkingHourSeeder::class,
-        ]);
+            ReviewSeeder::class,
+            ]);
     }
 }

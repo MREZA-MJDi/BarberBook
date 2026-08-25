@@ -5,7 +5,7 @@
     $reviewCount = (int) ($reviewsCount ?? 0);
 @endphp
 
-<section
+    <section
     class="relative overflow-hidden bg-background text-text"
     dir="rtl"
 >

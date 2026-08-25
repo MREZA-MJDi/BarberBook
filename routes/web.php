@@ -18,14 +18,6 @@ use App\Http\Controllers\SalonController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\WorkingHourController;
-
-// Future Customer Controllers
-use App\Http\Controllers\Customer\CustomerBookingController;
-use App\Http\Controllers\Customer\CustomerDashboardController;
-use App\Http\Controllers\Customer\CustomerNotificationController;
-use App\Http\Controllers\Customer\CustomerReviewController;
-use App\Http\Controllers\Customer\CustomerSettingsController;
-
 use App\Models\Salon;
 
 use Illuminate\Support\Facades\Route;
@@ -768,87 +760,5 @@ Route::middleware('auth')->group(function () {
     |
     */
 
-    Route::prefix('customer')
-        ->name('customer.')
-        ->group(function () {
-
-            /*
-            |--------------------------------------------------------------------------
-            | Dashboard
-            |--------------------------------------------------------------------------
-            */
-
-            Route::get('/', [
-                CustomerDashboardController::class,
-                'index',
-            ])->name('dashboard');
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Bookings
-            |--------------------------------------------------------------------------
-            */
-
-            Route::prefix('bookings')
-                ->name('bookings.')
-                ->group(function () {
-
-                    Route::get('/', [
-                        CustomerBookingController::class,
-                        'index',
-                    ])->name('index');
-
-
-                    Route::get('/{booking}', [
-                        CustomerBookingController::class,
-                        'show',
-                    ])->name('show');
-
-                });
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Reviews
-            |--------------------------------------------------------------------------
-            */
-
-            Route::get('/reviews', [
-                CustomerReviewController::class,
-                'index',
-            ])->name('reviews.index');
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Notifications
-            |--------------------------------------------------------------------------
-            */
-
-            Route::get('/notifications', [
-                CustomerNotificationController::class,
-                'index',
-            ])->name('notifications.index');
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Settings
-            |--------------------------------------------------------------------------
-            */
-
-            Route::get('/settings', [
-                CustomerSettingsController::class,
-                'index',
-            ])->name('settings.index');
-
-
-            Route::put('/settings', [
-                CustomerSettingsController::class,
-                'update',
-            ])->name('settings.update');
-
-        });
 
 });

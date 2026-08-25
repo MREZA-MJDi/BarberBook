@@ -1,27 +1,17 @@
-{{-- resources/views/components/customer/appointment-actions.blade.php --}}
-
 @props([
 'booking',
-'detailsUrl' => null,
-'reviewUrl' => null,
-'trackUrl' => null,
 ])
 
 @php
-    $status = $booking->status;
+    $status = $booking?->status ?? 'pending';
 
-    $canReview =
-        $status === 'completed'
-        && !$booking->review;
+    $canCancel = in_array($status, [
+        'pending',
+        'approved',
+        'confirmed',
+    ]);
 
-    $canTrack =
-        in_array($status, [
-            'pending',
-            'approved',
-            'completed',
-            'rejected',
-            'cancelled',
-        ], true);
+    $canReview = $status === 'completed';
 @endphp
 
 <div
@@ -30,53 +20,16 @@
     ]) }}
 >
 
-    {{-- =========================================================
-        Details
-    ========================================================== --}}
+    {{-- View Details --}}
 
-    @if($detailsUrl)
+    @if($booking?->id)
 
         <a
-            href="{{ $detailsUrl }}"
-            class="
-                inline-flex
-                items-center
-                justify-center
-                gap-2
-                rounded-xl
-                border
-                border-border
-                bg-background
-                px-4
-                py-2.5
-                text-xs
-                font-black
-                text-text
-                transition
-                hover:border-primary
-                hover:text-primary
-            "
+            href="{{ route('customer.bookings.show', $booking) }}"
+            class="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-bold text-black transition hover:bg-orange-400"
         >
 
-            <svg
-                class="h-4 w-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-            >
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M9 5h6M9 9h6M9 13h4"
-                />
-
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M7 3h8l3 3v15H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"
-                />
-            </svg>
+            <x-lucide-eye class="h-4 w-4" />
 
             جزئیات نوبت
 
@@ -85,99 +38,16 @@
     @endif
 
 
-    {{-- =========================================================
-        Track Booking
-    ========================================================== --}}
+    {{-- Review --}}
 
-    @if($trackUrl && $canTrack)
+    @if($canReview)
 
         <a
-            href="{{ $trackUrl }}"
-            class="
-                inline-flex
-                items-center
-                justify-center
-                gap-2
-                rounded-xl
-                border
-                border-primary/20
-                bg-primary/5
-                px-4
-                py-2.5
-                text-xs
-                font-black
-                text-primary
-                transition
-                hover:border-primary
-                hover:bg-primary/10
-            "
+            href="{{ route('customer.reviews.index') }}"
+            class="inline-flex items-center justify-center gap-2 rounded-xl border border-yellow-500/20 bg-yellow-500/10 px-4 py-2.5 text-sm font-bold text-yellow-400 transition hover:bg-yellow-500/20"
         >
 
-            <svg
-                class="h-4 w-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-            >
-                <circle
-                    cx="12"
-                    cy="12"
-                    r="8.5"
-                />
-
-                <path
-                    stroke-linecap="round"
-                    d="M12 7v5l3 2"
-                />
-            </svg>
-
-            پیگیری نوبت
-
-        </a>
-
-    @endif
-
-
-    {{-- =========================================================
-        Review
-    ========================================================== --}}
-
-    @if($canReview && $reviewUrl)
-
-        <a
-            href="{{ $reviewUrl }}"
-            class="
-                inline-flex
-                items-center
-                justify-center
-                gap-2
-                rounded-xl
-                bg-primary
-                px-4
-                py-2.5
-                text-xs
-                font-black
-                text-white
-                shadow-sm
-                shadow-primary/20
-                transition
-                hover:bg-primary/90
-                hover:-translate-y-0.5
-            "
-        >
-
-            <svg
-                class="h-4 w-4"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-            >
-                <path
-                    d="M12 2.75 14.8 8.4l6.2.9-4.5 4.38
-                       1.06 6.2L12 16.93l-5.56 2.93
-                       1.06-6.2L3 9.3l6.22-.9L12 2.75Z"
-                />
-            </svg>
+            <x-lucide-star class="h-4 w-4" />
 
             ثبت نظر
 
@@ -186,99 +56,31 @@
     @endif
 
 
-    {{-- =========================================================
-        Status-specific Information
-    ========================================================== --}}
+    {{-- Cancel --}}
 
-    @if($status === 'pending')
+    @if($canCancel && $booking?->id)
 
-        <span
-            class="
-                inline-flex
-                items-center
-                rounded-xl
-                bg-amber-500/5
-                px-3
-                py-2.5
-                text-[11px]
-                font-bold
-                text-amber-400/80
-            "
+        <form
+            method="POST"
+            action="{{ route('customer.bookings.cancel', $booking) }}"
+            onsubmit="return confirm('آیا از لغو این نوبت مطمئن هستید؟')"
         >
-            منتظر تأیید سالن
-        </span>
 
-    @elseif($status === 'approved')
+            @csrf
+            @method('PATCH')
 
-        <span
-            class="
-                inline-flex
-                items-center
-                rounded-xl
-                bg-emerald-500/5
-                px-3
-                py-2.5
-                text-[11px]
-                font-bold
-                text-emerald-400/80
-            "
-        >
-            نوبت شما تأیید شده
-        </span>
+            <button
+                type="submit"
+                class="inline-flex items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm font-bold text-red-400 transition hover:bg-red-500 hover:text-white"
+            >
 
-    @elseif($status === 'completed' && $booking->review)
+                <x-lucide-calendar-x class="h-4 w-4" />
 
-        <span
-            class="
-                inline-flex
-                items-center
-                rounded-xl
-                bg-primary/5
-                px-3
-                py-2.5
-                text-[11px]
-                font-bold
-                text-primary/80
-            "
-        >
-            نظر شما ثبت شده
-        </span>
+                لغو نوبت
 
-    @elseif($status === 'rejected')
+            </button>
 
-        <span
-            class="
-                inline-flex
-                items-center
-                rounded-xl
-                bg-red-500/5
-                px-3
-                py-2.5
-                text-[11px]
-                font-bold
-                text-red-400/80
-            "
-        >
-            درخواست رد شده
-        </span>
-
-    @elseif($status === 'cancelled')
-
-        <span
-            class="
-                inline-flex
-                items-center
-                rounded-xl
-                bg-slate-500/5
-                px-3
-                py-2.5
-                text-[11px]
-                font-bold
-                text-slate-400/80
-            "
-        >
-            نوبت لغو شده
-        </span>
+        </form>
 
     @endif
 

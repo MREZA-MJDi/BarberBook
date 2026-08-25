@@ -3,13 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Salon;
+use chillerlan\QRCode\Output\QRMarkupSVG;
+use chillerlan\QRCode\QRCode;
+use chillerlan\QRCode\QROptions;
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
-use chillerlan\QRCode\QRCode;
-use chillerlan\QRCode\QROptions;
-use chillerlan\QRCode\Output\QRMarkupSVG;
 
 class QrController extends Controller
 {
@@ -19,18 +20,36 @@ class QrController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    /**
-     * Display salon QR Code page.
-     */
-    public function index(): \Illuminate\Contracts\View\View
+    public function index(): View
     {
         $salon = Auth::user()?->salon;
 
         abort_if(!$salon, 404);
 
+        $qrSvg = null;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Generate SVG For Dashboard
+        |--------------------------------------------------------------------------
+        */
+
+        if (filled($salon->qr_token)) {
+
+            $url = $this->publicUrl($salon);
+
+            $qrSvg = $this->renderQr(
+                $url,
+                8
+            );
+        }
+
         return view(
             'dashboard.qr.index',
-            compact('salon')
+            [
+                'salon' => $salon,
+                'qrSvg' => $qrSvg,
+            ]
         );
     }
 
@@ -41,11 +60,6 @@ class QrController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    /**
-     * Generate salon QR Code.
-     *
-     * The token can only be generated once.
-     */
     public function generate(): RedirectResponse
     {
         $salon = Auth::user()?->salon;
@@ -54,11 +68,12 @@ class QrController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Already Generated
+        | Prevent Duplicate Generation
         |--------------------------------------------------------------------------
         */
 
         if (filled($salon->qr_token)) {
+
             return redirect()
                 ->route('qr.index')
                 ->with(
@@ -74,7 +89,11 @@ class QrController extends Controller
         */
 
         do {
-            $token = 'BB-' . strtoupper(Str::random(16));
+
+            $token = 'BB-' . strtoupper(
+                    Str::random(16)
+                );
+
         } while (
             Salon::query()
                 ->where('qr_token', $token)
@@ -106,9 +125,6 @@ class QrController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    /**
-     * Get public salon URL.
-     */
     private function publicUrl(Salon $salon): string
     {
         return route(
@@ -122,21 +138,34 @@ class QrController extends Controller
 
     /*
     |--------------------------------------------------------------------------
-    | QR Options
+    | Render QR
     |--------------------------------------------------------------------------
     */
 
-    /**
-     * Build QR options for SVG output.
-     */
-    private function qrOptions(int $scale): QROptions
-    {
-        return new QROptions([
-            'outputInterface' => QRMarkupSVG::class,
-            'eccLevel' => 'H',
-            'addQuietzone' => true,
-            'scale' => $scale,
-        ]);
+    private function renderQr(
+        string $url,
+        int $scale = 8
+    ): string {
+        $options = new QROptions();
+
+        $options->outputInterface = QRMarkupSVG::class;
+
+        $options->outputBase64 = false;
+
+        $options->eccLevel = 'H';
+
+        $options->addQuietzone = true;
+
+        $options->scale = max(
+            1,
+            $scale
+        );
+
+        $qrCode = new QRCode(
+            $options
+        );
+
+        return $qrCode->render($url);
     }
 
 
@@ -146,9 +175,6 @@ class QrController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    /**
-     * Render salon QR Code as SVG.
-     */
     public function image(): Response
     {
         $salon = Auth::user()?->salon;
@@ -162,16 +188,26 @@ class QrController extends Controller
 
         $url = $this->publicUrl($salon);
 
-        $svg = (new QRCode(
-            $this->qrOptions(8)
-        ))->render($url);
+        $svg = $this->renderQr(
+            $url,
+            8
+        );
 
         return response(
             $svg,
             200,
             [
-                'Content-Type' => 'image/svg+xml',
-                'Cache-Control' => 'private, max-age=3600',
+                'Content-Type' =>
+                    'image/svg+xml; charset=UTF-8',
+
+                'Content-Disposition' =>
+                    'inline; filename="salon-qr.svg"',
+
+                'Cache-Control' =>
+                    'private, max-age=3600',
+
+                'X-Content-Type-Options' =>
+                    'nosniff',
             ]
         );
     }
@@ -183,9 +219,6 @@ class QrController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    /**
-     * Download salon QR Code.
-     */
     public function download(): Response
     {
         $salon = Auth::user()?->salon;
@@ -199,9 +232,10 @@ class QrController extends Controller
 
         $url = $this->publicUrl($salon);
 
-        $svg = (new QRCode(
-            $this->qrOptions(12)
-        ))->render($url);
+        $svg = $this->renderQr(
+            $url,
+            12
+        );
 
         $filename =
             Str::slug(
@@ -213,13 +247,16 @@ class QrController extends Controller
             200,
             [
                 'Content-Type' =>
-                    'image/svg+xml',
+                    'image/svg+xml; charset=UTF-8',
 
                 'Content-Disposition' =>
                     'attachment; filename="' . $filename . '"',
 
                 'Cache-Control' =>
                     'no-cache, no-store, must-revalidate',
+
+                'X-Content-Type-Options' =>
+                    'nosniff',
             ]
         );
     }

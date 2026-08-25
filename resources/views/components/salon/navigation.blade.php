@@ -22,8 +22,8 @@
             max-w-7xl
             items-center
             justify-between
-            gap-6
-            px-5
+            gap-3
+            px-4
             sm:px-6
             lg:px-8
         "
@@ -34,11 +34,10 @@
         ====================================================== --}}
 
         <a
-            href="#home"
-            class="flex min-w-0 items-center gap-3"
+            href="#salon-page"
+            class="flex min-w-0 shrink-0 items-center gap-3"
         >
 
-            {{-- Logo --}}
             <div
                 class="
                     flex
@@ -55,7 +54,7 @@
                 "
             >
 
-                @if(!empty($salon->logo))
+                @if(!empty($salon?->logo))
 
                     <img
                         src="{{ asset('storage/' . $salon->logo) }}"
@@ -80,18 +79,18 @@
             </div>
 
 
-            {{-- Name --}}
             <div class="hidden min-w-0 sm:block">
 
                 <div
                     class="
+                        max-w-40
                         truncate
                         text-sm
                         font-black
                         text-text
                     "
                 >
-                    {{ $salon->name }}
+                    {{ $salon->name ?? 'آرایشگاه' }}
                 </div>
 
                 <div
@@ -111,7 +110,7 @@
 
 
         {{-- =====================================================
-            Desktop Navigation
+            Navigation
         ====================================================== --}}
 
         <div
@@ -124,7 +123,7 @@
         >
 
             <a
-                href="#home"
+                href="#salon-page"
                 class="
                     rounded-xl
                     px-4
@@ -141,7 +140,7 @@
 
 
             <a
-                href="{{ route('salon.services', $salon->slug) }}"
+                href="#services"
                 class="
                     rounded-xl
                     px-4
@@ -159,7 +158,7 @@
 
 
             <a
-                href="{{ route('salon.gallery', $salon->slug) }}"
+                href="#gallery"
                 class="
                     rounded-xl
                     px-4
@@ -177,7 +176,7 @@
 
 
             <a
-                href="{{ route('salon.reviews', $salon->slug) }}"
+                href="#reviews"
                 class="
                     rounded-xl
                     px-4
@@ -195,7 +194,7 @@
 
 
             <a
-                href="{{ route('salon.about', $salon->slug) }}"
+                href="#about"
                 class="
                     rounded-xl
                     px-4
@@ -218,58 +217,43 @@
             Booking CTA
         ====================================================== --}}
 
-        <a
-            href="#booking"
-            class="
-                inline-flex
-                shrink-0
-                items-center
-                gap-2
-                rounded-xl
-                bg-primary
-                px-4
-                py-2.5
-                text-sm
-                font-black
-                text-white
-                shadow-[0_0_25px_rgba(249,115,22,.18)]
-                transition
-                hover:bg-primary/90
-            "
-        >
+        @if($salon?->qr_token)
 
-            <svg
-                class="h-4 w-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
+            <a
+                href="{{ route('salon.booking.create', $salon->qr_token) }}"
+                class="
+                    inline-flex
+                    shrink-0
+                    items-center
+                    gap-2
+                    rounded-xl
+                    bg-primary
+                    px-3.5
+                    py-2.5
+                    text-sm
+                    font-black
+                    text-white
+                    shadow-[0_0_25px_rgba(249,115,22,.18)]
+                    transition
+                    hover:bg-primary/90
+                    active:scale-[0.98]
+                    sm:px-4
+                "
             >
 
-                <rect
-                    x="3"
-                    y="4"
-                    width="18"
-                    height="17"
-                    rx="3"
-                />
+                <x-lucide-calendar-plus class="h-4 w-4" />
 
-                <path
-                    stroke-linecap="round"
-                    d="M16 2v4M8 2v4M3 9h18"
-                />
+                <span class="hidden sm:inline">
+                    رزرو نوبت
+                </span>
 
-            </svg>
+                <span class="sm:hidden">
+                    رزرو
+                </span>
 
-            <span class="hidden sm:inline">
-                رزرو نوبت
-            </span>
+            </a>
 
-            <span class="sm:hidden">
-                رزرو
-            </span>
-
-        </a>
+        @endif
 
     </div>
 

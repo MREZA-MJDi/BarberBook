@@ -1,493 +1,176 @@
-{{-- resources/views/components/customer/review-card.blade.php --}}
-
 @props([
 'review',
-'detailsUrl' => null,
 ])
 
 @php
-    /*
-    |--------------------------------------------------------------------------
-    | Rating
-    |--------------------------------------------------------------------------
-    */
+    $rating = (int) ($review?->rating ?? 0);
 
-    $rating = max(
-        0,
-        min(5, (int) ($review->rating ?? 0))
-    );
+    $salon = $review?->salon;
 
+    $salonName = $salon?->name ?? 'آرایشگاه';
 
-    /*
-    |--------------------------------------------------------------------------
-    | Booking / Service / Salon
-    |--------------------------------------------------------------------------
-    */
+    $serviceName = $review?->service?->name;
 
-    $booking = $review->booking;
+    $comment = $review?->comment ?? $review?->content;
 
-    $service = $booking?->service;
+    $createdAt = $review?->created_at;
 
-    $salon = $review->salon ?? $booking?->salon;
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Persian Digits
-    |--------------------------------------------------------------------------
-    */
-
-    $toPersianDigits = function ($value) {
-        return strtr((string) $value, [
-            '0' => '۰',
-            '1' => '۱',
-            '2' => '۲',
-            '3' => '۳',
-            '4' => '۴',
-            '5' => '۵',
-            '6' => '۶',
-            '7' => '۷',
-            '8' => '۸',
-            '9' => '۹',
-        ]);
-    };
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Status
-    |--------------------------------------------------------------------------
-    */
-
-    $statusMap = [
-        'pending' => [
-            'label' => 'در انتظار انتشار',
-            'class' => 'border-amber-500/20 bg-amber-500/10 text-amber-400',
-            'dot'   => 'bg-amber-400',
-        ],
-
-        'published' => [
-            'label' => 'منتشر شده',
-            'class' => 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400',
-            'dot'   => 'bg-emerald-400',
-        ],
-
-        'rejected' => [
-            'label' => 'رد شده',
-            'class' => 'border-red-500/20 bg-red-500/10 text-red-400',
-            'dot'   => 'bg-red-400',
-        ],
-    ];
-
-    $status = $statusMap[$review->status] ?? [
-        'label' => 'نامشخص',
-        'class' => 'border-slate-500/20 bg-slate-500/10 text-slate-400',
-        'dot'   => 'bg-slate-400',
-    ];
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Booking Date / Time
-    |--------------------------------------------------------------------------
-    */
-
-    $bookingDate = $booking?->booking_date
-        ? \Carbon\Carbon::parse($booking->booking_date)
-        : null;
-
-    $bookingTime = $booking?->booking_time
-        ? substr((string) $booking->booking_time, 0, 5)
-        : null;
+    $isPublished = (bool) ($review?->is_published ?? false);
 @endphp
-
 
 <article
     {{ $attributes->merge([
-        'class' => '
-            overflow-hidden
-            rounded-[28px]
-            border
-            border-border
-            bg-surface
-            transition
-            duration-300
-            hover:border-primary/30
-        ',
+        'class' => 'rounded-2xl border border-zinc-800 bg-zinc-900 p-5 transition hover:border-orange-500/20',
     ]) }}
 >
 
-    <div class="p-5 sm:p-6">
+    {{-- Header --}}
 
-        {{-- =====================================================
-            Header
-        ====================================================== --}}
+    <div class="flex items-start justify-between gap-4">
 
-        <div
-            class="
-                flex
-                flex-col
-                gap-4
-                sm:flex-row
-                sm:items-start
-                sm:justify-between
-            "
-        >
+        <div class="flex min-w-0 items-center gap-3">
+
+            <div
+                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-yellow-500/20 bg-yellow-500/10 text-yellow-400"
+            >
+
+                <x-lucide-star class="h-5 w-5" />
+
+            </div>
+
 
             <div class="min-w-0">
 
-                <div class="flex items-center gap-3">
+                <h3 class="truncate text-sm font-black text-white">
 
-                    <div
-                        class="
-                            flex
-                            h-11
-                            w-11
-                            shrink-0
-                            items-center
-                            justify-center
-                            rounded-2xl
-                            bg-primary/10
-                            text-lg
-                            text-primary
-                        "
-                    >
-                        ★
-                    </div>
+                    {{ $salonName }}
 
-                    <div class="min-w-0">
+                </h3>
 
-                        <h3
-                            class="
-                                truncate
-                                text-sm
-                                font-black
-                                text-text
-                            "
-                        >
-                            {{ $salon?->name ?? 'آرایشگاه' }}
-                        </h3>
+                @if($serviceName)
 
-                        @if($service)
+                    <p class="mt-1 truncate text-xs text-zinc-500">
 
-                            <p
-                                class="
-                                    mt-1
-                                    truncate
-                                    text-xs
-                                    font-bold
-                                    text-muted
-                                "
-                            >
-                                {{ $service->name }}
-                            </p>
+                        {{ $serviceName }}
 
-                        @endif
+                    </p>
 
-                    </div>
-
-                </div>
+                @endif
 
             </div>
-
-
-            {{-- Status --}}
-            <span
-                class="
-                    inline-flex
-                    w-fit
-                    shrink-0
-                    items-center
-                    gap-2
-                    rounded-full
-                    border
-                    px-3
-                    py-1.5
-                    text-xs
-                    font-black
-                    {{ $status['class'] }}
-                    "
-            >
-
-                <span
-                    class="h-1.5 w-1.5 rounded-full {{ $status['dot'] }}"
-                ></span>
-
-                {{ $status['label'] }}
-
-            </span>
 
         </div>
 
 
-        {{-- =====================================================
-            Rating
-        ====================================================== --}}
+        {{-- Rating --}}
 
         <div
-            class="mt-5 flex items-center gap-1"
-            aria-label="امتیاز {{ $rating }} از 5"
+            class="flex shrink-0 items-center gap-1 rounded-xl border border-yellow-500/20 bg-yellow-500/10 px-2.5 py-1.5"
         >
 
-            @for($i = 1; $i <= 5; $i++)
+            <x-lucide-star
+                class="h-3.5 w-3.5 fill-yellow-400 text-yellow-400"
+            />
 
-                <span
-                    class="
-                        text-lg
-                        leading-none
-                        {{ $i <= $rating ? 'text-primary' : 'text-text/15' }}
-                        "
-                >
-                    ★
-                </span>
+            <span class="text-xs font-black text-yellow-400">
 
-            @endfor
+                {{ $rating }}/5
 
-            <span
-                class="
-                    mr-2
-                    text-xs
-                    font-black
-                    text-muted
-                "
-            >
-                {{ $toPersianDigits($rating) }} از ۵
             </span>
 
         </div>
 
+    </div>
 
-        {{-- =====================================================
-            Comment
-        ====================================================== --}}
 
-        @if($review->comment)
+    {{-- Stars --}}
 
-            <div
-                class="
-                    mt-5
-                    rounded-2xl
-                    border
-                    border-border
-                    bg-background
-                    p-4
-                "
+    <div class="mt-4 flex items-center gap-1">
+
+        @for($i = 1; $i <= 5; $i++)
+
+            <x-lucide-star
+                class="h-4 w-4 {{ $i <= $rating
+                    ? 'fill-yellow-400 text-yellow-400'
+                    : 'text-zinc-700' }}"
+            />
+
+        @endfor
+
+    </div>
+
+
+    {{-- Comment --}}
+
+    @if($comment)
+
+        <div
+            class="mt-4 rounded-xl border border-zinc-800 bg-zinc-950/50 p-4"
+        >
+
+            <p class="text-sm leading-7 text-zinc-400">
+
+                {{ $comment }}
+
+            </p>
+
+        </div>
+
+    @else
+
+        <p class="mt-4 text-sm text-zinc-600">
+
+            متنی برای این نظر ثبت نشده است.
+
+        </p>
+
+    @endif
+
+
+    {{-- Footer --}}
+
+    <div
+        class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-800 pt-4"
+    >
+
+        @if($createdAt)
+
+            <span class="inline-flex items-center gap-1.5 text-[11px] text-zinc-600">
+
+                <x-lucide-clock-3 class="h-3.5 w-3.5" />
+
+                {{ $createdAt->locale('fa')->translatedFormat('j F Y') }}
+
+            </span>
+
+        @endif
+
+
+        @if($isPublished)
+
+            <span
+                class="inline-flex items-center gap-1.5 rounded-lg border border-green-500/20 bg-green-500/10 px-2.5 py-1.5 text-[11px] font-bold text-green-400"
             >
 
-                <p
-                    class="
-                        text-sm
-                        leading-8
-                        text-text
-                    "
-                >
-                    {{ $review->comment }}
-                </p>
+                <x-lucide-check-circle class="h-3.5 w-3.5" />
 
-            </div>
+                منتشر شده
+
+            </span>
 
         @else
 
-            <p
-                class="
-                    mt-5
-                    text-sm
-                    italic
-                    text-muted
-                "
-            >
-                متنی برای این نظر ثبت نشده است.
-            </p>
-
-        @endif
-
-
-        {{-- =====================================================
-            Booking Information
-        ====================================================== --}}
-
-        @if($booking)
-
-            <div
-                class="
-                    mt-5
-                    grid
-                    grid-cols-2
-                    gap-3
-                    sm:grid-cols-3
-                "
+            <span
+                class="inline-flex items-center gap-1.5 rounded-lg border border-yellow-500/20 bg-yellow-500/10 px-2.5 py-1.5 text-[11px] font-bold text-yellow-400"
             >
 
-                {{-- Booking Date --}}
-                <div
-                    class="
-                        rounded-2xl
-                        border
-                        border-border
-                        bg-background
-                        p-4
-                    "
-                >
+                <x-lucide-clock-3 class="h-3.5 w-3.5" />
 
-                    <p class="text-[11px] font-bold text-muted">
-                        تاریخ نوبت
-                    </p>
+                در انتظار بررسی
 
-                    <p
-                        class="
-                            mt-1.5
-                            text-sm
-                            font-black
-                            text-text
-                        "
-                    >
-                        @if($bookingDate)
-
-                            {{ $toPersianDigits($bookingDate->format('Y/m/d')) }}
-
-                        @else
-
-                            -
-
-                        @endif
-                    </p>
-
-                </div>
-
-
-                {{-- Booking Time --}}
-                <div
-                    class="
-                        rounded-2xl
-                        border
-                        border-border
-                        bg-background
-                        p-4
-                    "
-                >
-
-                    <p class="text-[11px] font-bold text-muted">
-                        ساعت
-                    </p>
-
-                    <p
-                        dir="ltr"
-                        class="
-                            mt-1.5
-                            text-right
-                            text-sm
-                            font-black
-                            text-primary
-                        "
-                    >
-                        {{ $bookingTime ?? '-' }}
-                    </p>
-
-                </div>
-
-
-                {{-- Reference --}}
-                <div
-                    class="
-                        col-span-2
-                        rounded-2xl
-                        border
-                        border-border
-                        bg-background
-                        p-4
-                        sm:col-span-1
-                    "
-                >
-
-                    <p class="text-[11px] font-bold text-muted">
-                        کد پیگیری
-                    </p>
-
-                    <p
-                        dir="ltr"
-                        class="
-                            mt-1.5
-                            truncate
-                            text-left
-                            font-mono
-                            text-xs
-                            font-black
-                            text-text
-                        "
-                    >
-                        {{ $booking->reference_code ?? '-' }}
-                    </p>
-
-                </div>
-
-            </div>
+            </span>
 
         @endif
-
-
-        {{-- =====================================================
-            Footer
-        ====================================================== --}}
-
-        <div
-            class="
-                mt-6
-                flex
-                flex-col
-                gap-3
-                border-t
-                border-border
-                pt-5
-                sm:flex-row
-                sm:items-center
-                sm:justify-between
-            "
-        >
-
-            @if($review->created_at)
-
-                <span
-                    class="text-xs font-bold text-muted"
-                >
-                    ثبت شده
-                    {{ $review->created_at->diffForHumans() }}
-                </span>
-
-            @else
-
-                <span></span>
-
-            @endif
-
-
-            @if($detailsUrl)
-
-                <a
-                    href="{{ $detailsUrl }}"
-                    class="
-                        inline-flex
-                        w-fit
-                        items-center
-                        justify-center
-                        rounded-xl
-                        border
-                        border-border
-                        px-4
-                        py-2.5
-                        text-xs
-                        font-black
-                        text-text
-                        transition
-                        hover:border-primary
-                        hover:text-primary
-                    "
-                >
-                    مشاهده جزئیات
-                </a>
-
-            @endif
-
-        </div>
 
     </div>
 

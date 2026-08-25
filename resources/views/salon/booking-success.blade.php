@@ -176,7 +176,30 @@
                             <p class="text-sm text-muted">
                                 کد پیگیری
                             </p>
+                            <a
+                                href="{{ route('booking.track.form', [
+        'reference' => $booking->reference_code,
+    ]) }}"
+                                class="
+        inline-flex
+        items-center
+        justify-center
+        gap-2
+        rounded-xl
+        bg-primary
+        px-5
+        py-3
+        text-sm
+        font-black
+        text-white
+        transition
+        hover:bg-primary-hover
+    "
+                            >
+                                <x-lucide-search-check class="h-4 w-4" />
 
+                                پیگیری نوبت
+                            </a>
                             <p
                                 class="
                                     mt-2

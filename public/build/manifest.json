@@ -1,0 +1,33 @@
+{
+  "resources/css/app.css": {
+    "file": "assets/app-BFXrOzNP.css",
+    "src": "resources/css/app.css",
+    "isEntry": true,
+    "name": "app",
+    "names": [
+      "app.css"
+    ]
+  },
+  "resources/fonts/vazirmatn/Vazirmatn-Black.woff2": {
+    "file": "assets/Vazirmatn-Black-DA1YqYMq.woff2",
+    "src": "resources/fonts/vazirmatn/Vazirmatn-Black.woff2"
+  },
+  "resources/fonts/vazirmatn/Vazirmatn-Bold.woff2": {
+    "file": "assets/Vazirmatn-Bold-_OhAJEdh.woff2",
+    "src": "resources/fonts/vazirmatn/Vazirmatn-Bold.woff2"
+  },
+  "resources/fonts/vazirmatn/Vazirmatn-Medium.woff2": {
+    "file": "assets/Vazirmatn-Medium-D86t5Axy.woff2",
+    "src": "resources/fonts/vazirmatn/Vazirmatn-Medium.woff2"
+  },
+  "resources/fonts/vazirmatn/Vazirmatn-Regular.woff2": {
+    "file": "assets/Vazirmatn-Regular-CtGL0YI-.woff2",
+    "src": "resources/fonts/vazirmatn/Vazirmatn-Regular.woff2"
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-Dayi0gHp.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true
+  }
+}

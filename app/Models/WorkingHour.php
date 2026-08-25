@@ -23,7 +23,7 @@ class WorkingHour extends Model
     ];
 
     /**
-     * @return BelongsTo
+     * Salon owner of these working hours.
      */
     public function salon(): BelongsTo
     {

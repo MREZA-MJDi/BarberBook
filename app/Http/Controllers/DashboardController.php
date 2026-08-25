@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use App\Models\SalonDailyStatus;
 use App\Support\SalonStatus;
 use App\Models\Booking;
@@ -23,7 +24,6 @@ class DashboardController extends Controller
         */
 
         $bookingQuery = Booking::where('salon_id', $salon->id);
-
 
 
         /*
@@ -76,18 +76,15 @@ class DashboardController extends Controller
         | Today's Revenue
         |--------------------------------------------------------------------------
         |
-        | Revenue is based on completed bookings only.
+        | Revenue is based on completed bookings
+        | and the final price of each booking.
         |
         */
 
         $todayRevenue = (clone $bookingQuery)
             ->whereDate('booking_date', today())
             ->where('status', 'completed')
-            ->with('service')
-            ->get()
-            ->sum(function ($booking) {
-                return $booking->service?->price ?? 0;
-            });
+            ->sum('final_price');
 
 
         /*
@@ -105,21 +102,46 @@ class DashboardController extends Controller
 
 
         /*
-        |--------------------------------------------------------------------------
-        | Next Booking
-        |--------------------------------------------------------------------------
-        */
+   |--------------------------------------------------------------------------
+   | Next Booking
+   |--------------------------------------------------------------------------
+   |
+   | Find the nearest upcoming booking from now.
+   | It can be later today, tomorrow, or any future date.
+   |
+   */
+
+        $now = now();
 
         $nextBooking = (clone $bookingQuery)
-            ->whereDate('booking_date', today())
-            ->where('booking_time', '>=', now()->format('H:i:s'))
             ->whereIn('status', [
                 'pending',
                 'approved',
             ])
+            ->where(function ($query) use ($now) {
+
+                // Later today
+                $query
+                    ->whereDate('booking_date', today())
+                    ->whereTime(
+                        'booking_time',
+                        '>=',
+                        $now->format('H:i:s')
+                    )
+
+                    // OR any future date
+                    ->orWhereDate(
+                        'booking_date',
+                        '>',
+                        today()
+                    );
+
+            })
             ->with('service')
+            ->orderBy('booking_date')
             ->orderBy('booking_time')
             ->first();
+
 
         /*
         |--------------------------------------------------------------------------
@@ -132,30 +154,93 @@ class DashboardController extends Controller
             ->latest('updated_at')
             ->take(6)
             ->get();
-        /*
-|--------------------------------------------------------------------------
-| Notifications
-|--------------------------------------------------------------------------
-*/
 
-        $notifications = (clone $bookingQuery)
+
+        /*
+        |--------------------------------------------------------------------------
+        | Notifications
+        |--------------------------------------------------------------------------
+        */
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Notifications
+        |--------------------------------------------------------------------------
+        */
+
+        $notificationBookings = (clone $bookingQuery)
             ->where('status', 'pending')
             ->with('service')
             ->latest('created_at')
             ->take(5)
             ->get();
 
-        $notificationsCount = (clone $bookingQuery)
-            ->where('status', 'pending')
-            ->count();
+        $notifications = $notificationBookings
+            ->map(function ($booking) {
+
+                return [
+                    'type' => 'bookings',
+
+                    'title' => 'رزرو جدید',
+
+                    'message' => sprintf(
+                        '%s برای %s درخواست رزرو داده است.',
+                        $booking->customer_name,
+                        $booking->service?->name ?? 'خدمت'
+                    ),
+
+                    'date' => Carbon::parse(
+                        $booking->booking_date
+                    )->locale('fa')->translatedFormat('d F'),
+
+                    'time' => Carbon::parse(
+                        $booking->booking_time
+                    )->format('H:i'),
+
+                    'created_at' => $booking->created_at?->diffForHumans(),
+
+                    'booking_id' => $booking->id,
+                ];
+
+            })
+            ->values()
+            ->all();
+
+        $notificationsCount = $notificationBookings->count();
+
         /*
         |--------------------------------------------------------------------------
-        | Current Month Revenue
+        | Current Month
         |--------------------------------------------------------------------------
         */
 
         $currentMonthStart = now()->startOfMonth();
         $currentMonthEnd = now()->endOfMonth();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Previous Month
+        |--------------------------------------------------------------------------
+        */
+
+        $previousMonthStart = now()
+            ->copy()
+            ->subMonthNoOverflow()
+            ->startOfMonth();
+
+        $previousMonthEnd = now()
+            ->copy()
+            ->subMonthNoOverflow()
+            ->endOfMonth();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Current Month Revenue
+        |--------------------------------------------------------------------------
+        */
 
         $currentMonthRevenue = (clone $bookingQuery)
             ->whereBetween('booking_date', [
@@ -163,11 +248,7 @@ class DashboardController extends Controller
                 $currentMonthEnd->toDateString(),
             ])
             ->where('status', 'completed')
-            ->with('service')
-            ->get()
-            ->sum(function ($booking) {
-                return $booking->service?->price ?? 0;
-            });
+            ->sum('final_price');
 
 
         /*
@@ -176,25 +257,13 @@ class DashboardController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $previousMonthStart = now()
-            ->subMonthNoOverflow()
-            ->startOfMonth();
-
-        $previousMonthEnd = now()
-            ->subMonthNoOverflow()
-            ->endOfMonth();
-
         $previousMonthRevenue = (clone $bookingQuery)
             ->whereBetween('booking_date', [
                 $previousMonthStart->toDateString(),
                 $previousMonthEnd->toDateString(),
             ])
             ->where('status', 'completed')
-            ->with('service')
-            ->get()
-            ->sum(function ($booking) {
-                return $booking->service?->price ?? 0;
-            });
+            ->sum('final_price');
 
 
         /*
@@ -226,8 +295,8 @@ class DashboardController extends Controller
         | Monthly Revenue Goal
         |--------------------------------------------------------------------------
         |
-        | Until we add a real monthly goal field to salons,
-        | use 120% of previous month's revenue as a dynamic target.
+        | Until a real monthly goal field exists on salons,
+        | use 120% of previous month's revenue as target.
         |
         */
 
@@ -264,12 +333,60 @@ class DashboardController extends Controller
 
         /*
         |--------------------------------------------------------------------------
+        | Monthly Performance
+        |--------------------------------------------------------------------------
+        */
+
+        $currentMonthBookings = (clone $bookingQuery)
+            ->whereBetween('booking_date', [
+                $currentMonthStart->toDateString(),
+                $currentMonthEnd->toDateString(),
+            ])
+            ->count();
+
+
+        $currentMonthCompleted = (clone $bookingQuery)
+            ->whereBetween('booking_date', [
+                $currentMonthStart->toDateString(),
+                $currentMonthEnd->toDateString(),
+            ])
+            ->where('status', 'completed')
+            ->count();
+
+
+        $currentMonthCancelled = (clone $bookingQuery)
+            ->whereBetween('booking_date', [
+                $currentMonthStart->toDateString(),
+                $currentMonthEnd->toDateString(),
+            ])
+            ->where('status', 'cancelled')
+            ->count();
+
+
+        $monthlyPerformance = [
+
+            'bookings' => $currentMonthBookings,
+
+            'completed' => $currentMonthCompleted,
+
+            'cancelled' => $currentMonthCancelled,
+
+            'revenue' => $currentMonthRevenue,
+
+            'growth' => $revenueGrowth,
+
+        ];
+
+
+        /*
+        |--------------------------------------------------------------------------
         | Revenue Chart - Last 6 Months
         |--------------------------------------------------------------------------
         */
 
         $revenueLabels = [];
         $revenueData = [];
+
 
         for ($i = 5; $i >= 0; $i--) {
 
@@ -280,21 +397,20 @@ class DashboardController extends Controller
             $monthStart = $month->copy()->startOfMonth();
             $monthEnd = $month->copy()->endOfMonth();
 
+
             $monthRevenue = (clone $bookingQuery)
                 ->whereBetween('booking_date', [
                     $monthStart->toDateString(),
                     $monthEnd->toDateString(),
                 ])
                 ->where('status', 'completed')
-                ->with('service')
-                ->get()
-                ->sum(function ($booking) {
-                    return $booking->service?->price ?? 0;
-                });
+                ->sum('final_price');
 
 
-            $revenueLabels[] = $month->locale('fa')
+            $revenueLabels[] = $month
+                ->locale('fa')
                 ->translatedFormat('F');
+
 
             $revenueData[] = $monthRevenue;
         }
@@ -323,6 +439,8 @@ class DashboardController extends Controller
             'progress' => $monthlyGoalProgress,
 
             'total' => $currentMonthRevenue,
+            'notificationsCount' => $notificationsCount,
+
 
         ];
 
@@ -360,7 +478,7 @@ class DashboardController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Dashboard
+        | Dashboard View
         |--------------------------------------------------------------------------
         */
 
@@ -374,6 +492,8 @@ class DashboardController extends Controller
 
             'revenue' => $revenue,
 
+            'monthlyPerformance' => $monthlyPerformance,
+
             'recentActivities' => $recentActivities,
 
             'notifications' => $notifications,
@@ -381,8 +501,17 @@ class DashboardController extends Controller
             'notificationsCount' => $notificationsCount,
 
             'salonStatus' => $salonStatus,
+
         ]);
     }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Close Salon For Today
+    |--------------------------------------------------------------------------
+    */
+
     public function closeToday()
     {
         $salon = Auth::user()->salon;
@@ -405,6 +534,12 @@ class DashboardController extends Controller
         );
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Open Salon For Today
+    |--------------------------------------------------------------------------
+    */
 
     public function openToday()
     {

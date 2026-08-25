@@ -1,267 +1,132 @@
 @import "./fonts.css";
 @import "tailwindcss";
 
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-
-
 @theme {
-
-
     /* =========================
        Typography
     ========================== */
 
+    --font-sans: "Vazirmatn", sans-serif;
     --font-vazir: "Vazirmatn", sans-serif;
-
-
-
 
 
     /* =========================
        Base Colors
     ========================== */
 
-
     --color-background: #09090B;
-
     --color-surface: #18181B;
-
     --color-surface-light: #222225;
-
     --color-card: #111113;
-
-
-
 
 
     /* =========================
        Brand
     ========================== */
 
-
     --color-primary: #F97316;
-
     --color-primary-hover: #EA580C;
 
-
     --color-secondary: #FB923C;
-
     --color-secondary-hover: #F97316;
-
-
-
-
-
 
 
     /* =========================
        Text
     ========================== */
 
-
     --color-text: #FAFAFA;
-
     --color-muted: #A1A1AA;
-
-
-
-
-
 
 
     /* =========================
        Border
     ========================== */
 
-
     --color-border: #27272A;
-
-
-
-
-
 
 
     /* =========================
        Status Colors
     ========================== */
 
-
     --color-success: #22C55E;
-
     --color-danger: #EF4444;
-
     --color-warning: #FACC15;
-
-
-
-
-
 
 
     /* =========================
        Shadows
     ========================== */
 
-
-    --shadow-soft:
-        0 12px 35px rgba(0,0,0,.35);
-
-
+    --shadow-soft: 0 12px 35px rgba(0, 0, 0, .35);
 }
-
-
-
 
 
 /* =========================
    Global
 ========================== */
 
-
 html {
-
     direction: rtl;
-
     scroll-behavior: smooth;
-
 }
-
-
-
-
 
 body {
-
-
-    font-family: var(--font-vazir);
-
-
+    font-family: "Vazirmatn", sans-serif;
     background: var(--color-background);
-
-
     color: var(--color-text);
-
-
     -webkit-font-smoothing: antialiased;
-
-
     text-rendering: optimizeLegibility;
-
-
 }
-
-
-
-
-
 
 
 /* =========================
    Selection
 ========================== */
 
-
 ::selection {
-
-
     background: var(--color-primary);
-
-
     color: white;
-
-
 }
-
-
-
-
-
 
 
 /* =========================
    Scrollbar
 ========================== */
 
-
 ::-webkit-scrollbar {
-
-
     width: 8px;
-
-
 }
-
-
 
 ::-webkit-scrollbar-track {
-
-
     background: var(--color-background);
-
-
 }
-
-
 
 ::-webkit-scrollbar-thumb {
-
-
     background: #323238;
-
-
     border-radius: 999px;
-
-
 }
-
-
 
 ::-webkit-scrollbar-thumb:hover {
-
-
     background: var(--color-primary);
-
-
 }
-
-
-
-
-
 
 
 /* =========================
    Animations
 ========================== */
 
-
 @keyframes floating {
-
-
     0% {
-
         transform: translateY(0);
-
     }
-
 
     50% {
-
         transform: translateY(-10px);
-
     }
-
 
     100% {
-
         transform: translateY(0);
-
     }
-
-
 }

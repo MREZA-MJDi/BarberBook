@@ -1,178 +1,256 @@
-<header class="relative overflow-hidden bg-background" dir="rtl">
+<section
+    class="relative overflow-hidden bg-background text-text"
+    dir="rtl"
+>
 
-    {{-- Background Glow --}}
-    <div class="absolute inset-x-0 top-0 flex justify-center pointer-events-none">
-        <div class="h-72 w-72 rounded-full bg-primary/15 blur-[140px]"></div>
-    </div>
+    <div class="max-w-7xl mx-auto px-6 py-20 lg:py-28">
 
-    <div class="relative mx-auto max-w-7xl px-5 py-8 lg:px-8">
-
-        <div class="grid items-center gap-10 lg:grid-cols-2">
-
-            {{-- ================= IMAGE ================= --}}
-            {{-- ================= IMAGE ================= --}}
-            <div class="order-1">
-
-                <div class="relative">
+        <div class="grid items-center gap-12 lg:grid-cols-2">
 
 
-                    <div
-                        class="
-            overflow-hidden
-            rounded-[24px]
-            border
-            border-border/50
-            bg-surface
-            shadow-xl
-            "
-                    >
+            {{-- Content --}}
 
-                        <img
-                            src="{{ asset('images/login.jpg') }}"
-                            alt="آرایشگاه آلیجناب"
-                            class="
-                h-[480px]
-                w-full
-                object-cover
-                lg:h-[580px]
-                "
-                        >
+            <div>
 
 
-                        {{-- Cinematic Overlay --}}
+                {{-- Badge --}}
 
-                        <div
-                            class="
-                absolute
-                inset-0
-                bg-gradient-to-t
-                from-black/70
-                via-black/10
-                to-transparent
-                "
-                        ></div>
+                <span
+                    class="
+                    inline-flex items-center gap-2
+                    rounded-full
+                    border border-primary/20
+                    bg-primary/10
+                    px-5 py-2
+                    text-sm font-bold
+                    text-primary
+                    "
+                >
 
+                    ✨ رزرو آنلاین آرایشگاه
 
-                    </div>
-
-
-                    {{-- Small Luxury Tag --}}
-
-                    <div
-                        class="
-            absolute
-            bottom-6
-            right-6
-            rounded-2xl
-            border
-            border-white/10
-            bg-black/50
-            px-5
-            py-3
-            backdrop-blur-xl
-            "
-                    >
-
-                        <p class="text-sm text-white/70">
-                            Premium Barber
-                        </p>
-
-                    </div>
+                </span>
 
 
-                </div>
+                {{-- Title --}}
 
-            </div>
-            {{-- ================= CONTENT ================= --}}
-            <div class="order-2">
+                <h1
+                    class="
+                    mt-7
+                    text-4xl
+                    font-black
+                    leading-tight
+                    text-text
+                    lg:text-6xl
+                    "
+                >
 
-                {{-- Status --}}
-                <div class="inline-flex items-center gap-2 rounded-full bg-green-500/10 px-4 py-2 text-sm font-bold text-green-400">
-
-                    <span class="h-2.5 w-2.5 rounded-full bg-green-400 animate-pulse"></span>
-
-                    امروز تا ساعت ۲۲:۰۰ پذیرش داریم
-
-                </div>
-
-                {{-- Heading --}}
-                <h1 class="mt-6 text-5xl font-black leading-tight text-text lg:text-7xl">
-
-                    Define Your
-                    <span class="text-primary">
-        Signature Style
-    </span>
-
-                </h1>                    <span class="text-primary">
-                        استایلی
-                    </span>
-
-                    انتخاب می‌کنی؟
+                    {{ $salon->name ?? 'آرایشگاه آلیجناب' }}
 
                 </h1>
 
-                {{-- Description --}}
-                <p class="mt-6 max-w-lg leading-8 text-muted">
 
-                    مدل‌های ترند، نمونه‌کارهای آرایشگاه و نظر مشتری‌ها را ببین،
-                    سپس زمان مناسب خودت را انتخاب و نوبتت را ثبت کن.
+                {{-- Description --}}
+
+                <p
+                    class="
+                    mt-6
+                    max-w-xl
+                    text-lg
+                    leading-9
+                    text-muted
+                    "
+                >
+
+                    {{ $salon->description ?? 'تجربه‌ای متفاوت از اصلاح و استایل حرفه‌ای با بهترین خدمات آرایشگاهی' }}
 
                 </p>
 
-                {{-- Quick Info --}}
-                <div class="mt-8 grid grid-cols-2 gap-4">
 
-                    <div class="rounded-2xl border border-border bg-surface p-5">
+                {{-- Stats --}}
 
-                        <p class="text-sm text-muted">
-                            وضعیت
-                        </p>
+                <div class="flex flex-wrap gap-4 mt-8">
 
-                        <p class="mt-2 font-bold text-green-400">
-                            باز
-                        </p>
+
+                    <div
+                        class="
+                        rounded-2xl
+                        border border-border
+                        bg-surface
+                        px-5 py-3
+                        "
+                    >
+
+                        ⭐
+
+                        <span class="text-primary font-bold">
+                        </span>
+
+                        امتیاز
+
+                    </div>
+
+
+                    <div
+                        class="
+                        rounded-2xl
+                        border border-border
+                        bg-surface
+                        px-5 py-3
+                        "
+                    >
+
+                        📍
 
                     </div>
 
-                    <div class="rounded-2xl border border-border bg-surface p-5">
-
-                        <p class="text-sm text-muted">
-                            موقعیت
-                        </p>
-
-                        <p class="mt-2 font-bold text-text">
-                            قزوین
-                        </p>
-
-                    </div>
 
                 </div>
 
-                {{-- CTA --}}
-                <div class="mt-10 flex flex-col gap-3 sm:flex-row">
+
+                {{-- Buttons --}}
+
+                <div class="flex flex-wrap gap-4 mt-10">
+
 
                     <a
                         href="#booking"
-                        class="inline-flex items-center justify-center rounded-2xl bg-primary px-8 py-4 font-bold text-white transition hover:bg-primary-hover">
+                        class="
+                        rounded-2xl
+                        bg-primary
+                        px-8 py-4
+                        font-black
+                        text-white
+                        transition
+                        hover:bg-primary/90
+                        shadow-[0_0_35px_rgba(249,115,22,.25)]
+                        "
+                    >
 
                         رزرو نوبت
 
                     </a>
 
-                    <a
-                        href="#gallery"
-                        class="inline-flex items-center justify-center rounded-2xl border border-border bg-surface px-8 py-4 font-bold text-text transition hover:border-primary hover:text-primary">
 
-                        مشاهده نمونه‌کارها
+                    <a
+                        href="#services"
+                        class="
+                        rounded-2xl
+                        border
+                        border-border
+                        px-8 py-4
+                        font-bold
+                        text-text
+                        transition
+                        hover:border-primary
+                        hover:text-primary
+                        "
+                    >
+
+                        مشاهده خدمات
 
                     </a>
 
+
                 </div>
+
 
             </div>
 
+
+            {{-- Image --}}
+
+            <div class="relative">
+
+
+                {{-- Glow --}}
+
+                <div
+                    class="
+                    absolute
+                    -inset-5
+                    rounded-[50px]
+                    bg-primary/20
+                    blur-3xl
+                    "
+                ></div>
+
+
+                <div
+                    class="
+                    relative
+                    overflow-hidden
+                    rounded-[45px]
+                    border
+                    border-border
+                    "
+                >
+
+                    <img
+
+                        src="{{ asset('images/hero2.jpg') }}"
+
+                        alt="Salon"
+
+                        class="
+    h-[550px]
+    w-full
+    object-cover
+    "
+
+                    >
+
+                    {{-- Image Overlay --}}
+
+                    <div
+                        class="
+                        absolute
+                        inset-0
+                        bg-gradient-to-t
+                        from-background/90
+                        via-transparent
+                        "
+                    ></div>
+
+
+                    {{-- Floating Card --}}
+
+                    <div
+                        class="
+                        absolute
+                        bottom-6
+                        right-6
+                        rounded-3xl
+                        border
+                        border-border
+                        bg-background/80
+                        backdrop-blur
+                        px-6 py-4
+                        "
+                    >
+
+                        <p class="text-sm text-muted">
+                            متخصص استایل و اصلاح
+                        </p>
+
+                        <p class="mt-1 font-black text-primary">
+                            بهترین تجربه برای شما
+                        </p>
+
+
+                    </div>
+
+
+                </div>
+
+
+            </div>
+
+
         </div>
+
 
     </div>
 
-</header>
+
+</section>

@@ -5,10 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Booking extends Model
 {
     protected $fillable = [
+        'user_id',
         'salon_id',
         'service_id',
         'reference_code',
@@ -18,7 +20,11 @@ class Booking extends Model
         'booking_time',
         'customer_note',
         'barber_note',
+        'final_price',
+        'duration_minutes',
         'status',
+        'approved_at',
+        'completed_at',
     ];
 
     protected static function booted(): void
@@ -47,5 +53,18 @@ class Booking extends Model
     public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class);
+    }
+
+    public function review(): HasOne
+    {
+        return $this->hasOne(Review::class);
+    }
+    /**
+     * @return BelongsTo
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+
     }
 }

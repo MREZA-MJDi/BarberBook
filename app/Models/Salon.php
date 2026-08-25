@@ -24,7 +24,10 @@ class Salon extends Model
     ];
 
     /**
-     * @return void
+     * Generate salon slug automatically.
+     *
+     * QR token is intentionally NOT generated here.
+     * QR token must be generated manually from the dashboard.
      */
     protected static function booted(): void
     {
@@ -34,18 +37,11 @@ class Salon extends Model
                 $salon->slug = 'salon-' . Str::lower(Str::random(8));
             }
 
-            if (blank($salon->qr_token)) {
-
-                do {
-                    $token = 'BB-' . strtoupper(Str::random(8));
-                } while (Salon::where('qr_token', $token)->exists());
-
-                $salon->qr_token = $token;
-            }
         });
     }
+
     /**
-     * @return BelongsTo
+     * Salon owner.
      */
     public function user(): BelongsTo
     {
@@ -53,20 +49,23 @@ class Salon extends Model
     }
 
     /**
-     * @return HasMany
+     * Salon services.
      */
     public function services(): HasMany
     {
         return $this->hasMany(Service::class);
     }
 
+    /**
+     * Salon bookings.
+     */
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
     }
 
     /**
-     * @return HasMany
+     * Salon working hours.
      */
     public function workingHours(): HasMany
     {
@@ -74,9 +73,25 @@ class Salon extends Model
     }
 
     /**
-     * @return HasMany
+     * Salon reviews.
+     */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    /**
+     * Salon daily statuses.
      */
     public function dailyStatuses(): HasMany
     {
         return $this->hasMany(SalonDailyStatus::class);
-    }}
+    }
+
+    public function galleryItems(): HasMany
+    {
+        return $this->hasMany(GalleryItem::class)
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
+}

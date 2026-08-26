@@ -14,13 +14,9 @@ use Morilog\Jalali\Jalalian;
 
 class PublicBookingController extends Controller
 {
-    /**
-     * Booking availability service.
-     */
     public function __construct(
         protected BookingAvailabilityService $availabilityService
-    )
-    {
+    ) {
     }
 
     /*
@@ -29,33 +25,18 @@ class PublicBookingController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    /**
-     * Show public booking page.
-     *
-     * Customer reaches this flow through the salon QR code.
-     */
     public function create(
-        string $qr_token
-    ): View
-    {
+        Salon $salon
+    ): View {
+        $salon->load([
+            'services' => function ($query) {
+                $query
+                    ->where('is_active', true)
+                    ->orderBy('name');
+            },
+        ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Salon
-        |--------------------------------------------------------------------------
-        */
-
-        $salon = Salon::query()
-            ->where('qr_token', $qr_token)
-            ->where('is_active', true)
-            ->with([
-                'services' => function ($query) {
-                    $query
-                        ->where('is_active', true)
-                        ->orderBy('name');
-                },
-            ])
-            ->firstOrFail();
+        abort_unless($salon->is_active, 404);
 
         /*
         |--------------------------------------------------------------------------
@@ -79,7 +60,7 @@ class PublicBookingController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Jalali Date For UI
+        | Jalali Date
         |--------------------------------------------------------------------------
         */
 
@@ -96,10 +77,9 @@ class PublicBookingController extends Controller
         $selectedService = null;
 
         if (request()->filled('service_id')) {
-
             $selectedService = $salon->services->firstWhere(
                 'id',
-                (int)request('service_id')
+                (int) request('service_id')
             );
         }
 
@@ -120,41 +100,22 @@ class PublicBookingController extends Controller
         $availableSlots = [];
 
         if ($selectedService) {
-
-            $availableSlots =
-                $this->availabilityService->getAvailableSlots(
-                    $salon->id,
-                    $selectedDate,
-                    $selectedService->duration
-                );
+            $availableSlots = $this->availabilityService->getAvailableSlots(
+                $salon->id,
+                $selectedDate,
+                $selectedService->duration
+            );
         }
-
-        /*
-        |--------------------------------------------------------------------------
-        | View
-        |--------------------------------------------------------------------------
-        */
 
         return view(
             'salon.booking',
             [
-                'salon' =>
-                    $salon,
-
-                'selectedDate' =>
-                    $selectedDate,
-
-                'jalaliDate' =>
-                    $jalaliDate,
-
-                'selectedService' =>
-                    $selectedService,
-
-                'availableSlots' =>
-                    $availableSlots,
-
-                'selectedTime' =>
-                    $selectedTime,
+                'salon' => $salon,
+                'selectedDate' => $selectedDate,
+                'jalaliDate' => $jalaliDate,
+                'selectedService' => $selectedService,
+                'availableSlots' => $availableSlots,
+                'selectedTime' => $selectedTime,
             ]
         );
     }
@@ -165,25 +126,11 @@ class PublicBookingController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    /**
-     * Store customer booking.
-     */
     public function store(
         StorePublicBookingRequest $request,
-        string                    $qr_token
-    ): RedirectResponse
-    {
-
-        /*
-        |--------------------------------------------------------------------------
-        | Salon
-        |--------------------------------------------------------------------------
-        */
-
-        $salon = Salon::query()
-            ->where('qr_token', $qr_token)
-            ->where('is_active', true)
-            ->firstOrFail();
+        Salon $salon
+    ): RedirectResponse {
+        abort_unless($salon->is_active, 404);
 
         /*
         |--------------------------------------------------------------------------
@@ -197,9 +144,6 @@ class PublicBookingController extends Controller
         |--------------------------------------------------------------------------
         | Service
         |--------------------------------------------------------------------------
-        |
-        | The service must belong to this salon.
-        |
         */
 
         $service = Service::query()
@@ -209,7 +153,6 @@ class PublicBookingController extends Controller
             ->first();
 
         if (!$service) {
-
             return back()
                 ->withInput()
                 ->with(
@@ -229,7 +172,6 @@ class PublicBookingController extends Controller
         );
 
         if (!$bookingDate) {
-
             return back()
                 ->withInput()
                 ->with(
@@ -249,7 +191,6 @@ class PublicBookingController extends Controller
         */
 
         if ($bookingDate->lt(Carbon::today())) {
-
             return back()
                 ->withInput()
                 ->with(
@@ -274,16 +215,14 @@ class PublicBookingController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $isAvailable =
-            $this->availabilityService->isAvailable(
-                $salon->id,
-                $bookingDate,
-                $bookingTime,
-                $service->duration
-            );
+        $isAvailable = $this->availabilityService->isAvailable(
+            $salon->id,
+            $bookingDate,
+            $bookingTime,
+            $service->duration
+        );
 
         if (!$isAvailable) {
-
             return back()
                 ->withInput()
                 ->with(
@@ -299,46 +238,16 @@ class PublicBookingController extends Controller
         */
 
         $booking = Booking::create([
-
-
-            'salon_id' =>
-                $salon->id,
-
-            'service_id' =>
-                $service->id,
-
-            'customer_name' =>
-                $validated['customer_name'],
-
-            'customer_phone' =>
-                $validated['customer_phone'],
-
-            'booking_date' =>
-                $bookingDate->format('Y-m-d'),
-
-            'booking_time' =>
-                $bookingTime,
-
-            'customer_note' =>
-                $validated['customer_note'] ?? null,
-
-            'final_price' =>
-                $service->price,
-
-            'duration_minutes' =>
-                $service->duration,
-
-            /*
-            |--------------------------------------------------------------------------
-            | Public Booking
-            |--------------------------------------------------------------------------
-            |
-            | Customer bookings always start as pending.
-            |
-            */
-
-            'status' =>
-                'pending',
+            'salon_id' => $salon->id,
+            'service_id' => $service->id,
+            'customer_name' => $validated['customer_name'],
+            'customer_phone' => $validated['customer_phone'],
+            'booking_date' => $bookingDate->format('Y-m-d'),
+            'booking_time' => $bookingTime,
+            'customer_note' => $validated['customer_note'] ?? null,
+            'final_price' => $service->price,
+            'duration_minutes' => $service->duration,
+            'status' => 'pending',
         ]);
 
         /*
@@ -351,11 +260,8 @@ class PublicBookingController extends Controller
             ->route(
                 'salon.booking.success',
                 [
-                    'qr_token' =>
-                        $salon->qr_token,
-
-                    'booking' =>
-                        $booking->reference_code,
+                    'salon' => $salon->slug,
+                    'booking' => $booking->reference_code,
                 ]
             )
             ->with(
@@ -363,25 +269,18 @@ class PublicBookingController extends Controller
                 'درخواست نوبت شما با موفقیت ثبت شد.'
             );
     }
+
     /*
     |--------------------------------------------------------------------------
     | Success
     |--------------------------------------------------------------------------
     */
 
-    /**
-     * Show successful booking page.
-     */
     public function success(
-        string $qr_token,
+        Salon $salon,
         string $booking
-    ): View
-    {
-
-        $salon = Salon::query()
-            ->where('qr_token', $qr_token)
-            ->where('is_active', true)
-            ->firstOrFail();
+    ): View {
+        abort_unless($salon->is_active, 404);
 
         $bookingModel = Booking::query()
             ->where('reference_code', $booking)
@@ -404,24 +303,9 @@ class PublicBookingController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    /**
-     * Parse booking date.
-     *
-     * Supports:
-     *
-     * Jalali:
-     * 1405/05/25
-     * 1405-05-25
-     *
-     * Gregorian:
-     * 2026/08/16
-     * 2026-08-16
-     */
     private function parseBookingDate(
         ?string $date
-    ): ?Carbon
-    {
-
+    ): ?Carbon {
         if (!$date) {
             return null;
         }
@@ -445,24 +329,21 @@ class PublicBookingController extends Controller
         */
 
         try {
-
             if (
                 preg_match(
                     '/^\d{4}\/\d{1,2}\/\d{1,2}$/',
                     $normalized
                 )
             ) {
-
                 [$year] = explode(
                     '/',
                     $normalized
                 );
 
                 if (
-                    (int)$year >= 1200 &&
-                    (int)$year <= 1500
+                    (int) $year >= 1200 &&
+                    (int) $year <= 1500
                 ) {
-
                     return Jalalian::fromFormat(
                         'Y/m/d',
                         $normalized
@@ -471,7 +352,6 @@ class PublicBookingController extends Controller
                         ->startOfDay();
                 }
             }
-
         } catch (\Throwable) {
             // Continue with Gregorian parser.
         }
@@ -483,14 +363,11 @@ class PublicBookingController extends Controller
         */
 
         try {
-
             return Carbon::createFromFormat(
                 'Y/m/d',
                 $normalized
             )->startOfDay();
-
         } catch (\Throwable) {
-
             return null;
         }
     }

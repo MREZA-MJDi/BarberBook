@@ -18,6 +18,7 @@ use App\Http\Controllers\SalonController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\WorkingHourController;
+
 use App\Models\Salon;
 
 use Illuminate\Support\Facades\Route;
@@ -84,22 +85,33 @@ Route::get('/', function () {
     return match ((int) $user->role_id) {
 
         /*
+        |--------------------------------------------------------------------------
         | Super Admin
+        |--------------------------------------------------------------------------
         */
+
         1 => redirect()->route(
             'admin.salons.index'
         ),
 
+
         /*
+        |--------------------------------------------------------------------------
         | Barber
+        |--------------------------------------------------------------------------
         */
+
         2 => redirect()->route(
             'dashboard'
         ),
 
+
         /*
+        |--------------------------------------------------------------------------
         | Unknown Role
+        |--------------------------------------------------------------------------
         */
+
         default => abort(403),
 
     };
@@ -112,11 +124,11 @@ Route::get('/', function () {
 | PUBLIC SALON
 |--------------------------------------------------------------------------
 |
-| URL جدید:
+| New public URL:
 |
+| /salon/aaalygnab
 | /salon/alijenab
 | /salon/naser
-| /salon/khams
 |
 | Model Binding:
 | {salon:slug}
@@ -139,15 +151,15 @@ Route::get('/salon/{salon:slug}', [
 | LEGACY QR URL
 |--------------------------------------------------------------------------
 |
-| QRهای قدیمی:
+| Old QR URLs:
 |
 | /salon/BB-ROBYWR66R91OPWGM
 |
-| به URL جدید منتقل می‌شوند:
+| are redirected permanently to:
 |
 | /salon/alijenab
 |
-| این Route فقط برای QRهای قدیمی است.
+| This route exists only for backward compatibility.
 |
 */
 
@@ -160,13 +172,14 @@ Route::get('/salon/{qr_token}', function (
         ->where('is_active', true)
         ->firstOrFail();
 
-    return redirect()->route(
-        'salon.public',
-        [
-            'salon' => $salon->slug,
-        ],
-        301
-    );
+    return redirect()
+        ->route(
+            'salon.public',
+            [
+                'salon' => $salon->slug,
+            ],
+            301
+        );
 
 })
     ->where(
@@ -181,9 +194,9 @@ Route::get('/salon/{qr_token}', function (
 | PUBLIC BOOKING
 |--------------------------------------------------------------------------
 |
-| URL:
+| Main public booking URL:
 |
-| /salon/alijenab/booking
+| /salon/{slug}/booking
 |
 */
 
@@ -202,6 +215,11 @@ Route::get('/salon/{salon:slug}/booking', [
 |--------------------------------------------------------------------------
 | PUBLIC BOOKING STORE
 |--------------------------------------------------------------------------
+|
+| POST:
+|
+| /salon/{slug}/booking
+|
 */
 
 Route::post('/salon/{salon:slug}/booking', [
@@ -220,9 +238,9 @@ Route::post('/salon/{salon:slug}/booking', [
 | PUBLIC BOOKING SUCCESS
 |--------------------------------------------------------------------------
 |
-| Reference Code:
+| Example:
 |
-| /salon/alijenab/booking/success/BB-XXXXXXXX
+| /salon/aaalygnab/booking/success/BB-XXXXXXXX
 |
 */
 
@@ -249,7 +267,7 @@ Route::get(
 | PUBLIC BOOKING TRACKING
 |--------------------------------------------------------------------------
 |
-| بدون Login
+| No authentication required.
 |
 */
 
@@ -259,7 +277,7 @@ Route::prefix('track-booking')
 
         /*
         |--------------------------------------------------------------------------
-        | Form
+        | Tracking Form
         |--------------------------------------------------------------------------
         */
 
@@ -271,7 +289,7 @@ Route::prefix('track-booking')
 
         /*
         |--------------------------------------------------------------------------
-        | Lookup
+        | Tracking Lookup
         |--------------------------------------------------------------------------
         */
 
@@ -308,11 +326,7 @@ Route::middleware('auth')->group(function () {
     | SUPER ADMIN
     |--------------------------------------------------------------------------
     |
-    | Super Admin:
-    |
     | role_id = 1
-    |
-    | بدون نیاز به Salon
     |
     */
 
@@ -332,7 +346,9 @@ Route::middleware('auth')->group(function () {
                 ->group(function () {
 
                     /*
+                    |--------------------------------------------------------------------------
                     | Index
+                    |--------------------------------------------------------------------------
                     */
 
                     Route::get('/', [
@@ -342,7 +358,9 @@ Route::middleware('auth')->group(function () {
 
 
                     /*
+                    |--------------------------------------------------------------------------
                     | Create
+                    |--------------------------------------------------------------------------
                     */
 
                     Route::get('/create', [
@@ -352,7 +370,9 @@ Route::middleware('auth')->group(function () {
 
 
                     /*
+                    |--------------------------------------------------------------------------
                     | Store
+                    |--------------------------------------------------------------------------
                     */
 
                     Route::post('/', [
@@ -362,7 +382,9 @@ Route::middleware('auth')->group(function () {
 
 
                     /*
+                    |--------------------------------------------------------------------------
                     | Edit
+                    |--------------------------------------------------------------------------
                     */
 
                     Route::get('/{salon}/edit', [
@@ -372,7 +394,9 @@ Route::middleware('auth')->group(function () {
 
 
                     /*
+                    |--------------------------------------------------------------------------
                     | Update
+                    |--------------------------------------------------------------------------
                     */
 
                     Route::put('/{salon}', [
@@ -382,7 +406,9 @@ Route::middleware('auth')->group(function () {
 
 
                     /*
+                    |--------------------------------------------------------------------------
                     | Delete
+                    |--------------------------------------------------------------------------
                     */
 
                     Route::delete('/{salon}', [
@@ -402,9 +428,7 @@ Route::middleware('auth')->group(function () {
     |
     | auth
     | +
-    | salon
-    |
-    | Barber باید Salon داشته باشد.
+    | salon middleware
     |
     */
 
@@ -424,7 +448,7 @@ Route::middleware('auth')->group(function () {
 
         /*
         |--------------------------------------------------------------------------
-        | Dashboard Prefix
+        | Dashboard Routes
         |--------------------------------------------------------------------------
         */
 
@@ -587,7 +611,9 @@ Route::middleware('auth')->group(function () {
                 ->group(function () {
 
                     /*
+                    |--------------------------------------------------------------------------
                     | QR Dashboard
+                    |--------------------------------------------------------------------------
                     */
 
                     Route::get('/', [
@@ -597,10 +623,13 @@ Route::middleware('auth')->group(function () {
 
 
                     /*
+                    |--------------------------------------------------------------------------
                     | Generate
+                    |--------------------------------------------------------------------------
                     |
-                    | فعلاً برای compatibility نگه داشته شده.
-                    | QR token در Create Salon ساخته می‌شود.
+                    | Kept for compatibility.
+                    | QR token is created with Salon.
+                    |
                     */
 
                     Route::post('/generate', [
@@ -610,7 +639,9 @@ Route::middleware('auth')->group(function () {
 
 
                     /*
+                    |--------------------------------------------------------------------------
                     | QR Image
+                    |--------------------------------------------------------------------------
                     */
 
                     Route::get('/image', [
@@ -620,7 +651,9 @@ Route::middleware('auth')->group(function () {
 
 
                     /*
+                    |--------------------------------------------------------------------------
                     | QR Download
+                    |--------------------------------------------------------------------------
                     */
 
                     Route::get('/download', [
@@ -754,9 +787,7 @@ Route::middleware('auth')->group(function () {
     | CUSTOMER ACCOUNT AREA
     |--------------------------------------------------------------------------
     |
-    | فعلاً auth می‌خواهد.
-    |
-    | Public Customer از این بخش استفاده نمی‌کند.
+    | Reserved for future authenticated customer functionality.
     |
     */
 

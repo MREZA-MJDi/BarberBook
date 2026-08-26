@@ -2,14 +2,24 @@
 
 @extends('layouts.app')
 
+@section('title', 'رزرو با موفقیت ثبت شد | ' . ($salon->name ?? 'آرایشگاه'))
+
 @section('content')
 
     <main
-        class="min-h-screen bg-background px-5 py-16 sm:px-6 lg:px-8"
+        class="
+            min-h-screen
+            bg-background
+            px-4
+            py-12
+            sm:px-6
+            sm:py-16
+            lg:px-8
+        "
         dir="rtl"
     >
 
-        <div class="mx-auto max-w-3xl">
+        <div class="mx-auto w-full max-w-3xl">
 
             {{-- =====================================================
                 Success Header
@@ -28,14 +38,25 @@
                         rounded-full
                         bg-emerald-500/10
                         text-4xl
+                        font-black
+                        text-emerald-400
                     "
                 >
                     ✓
                 </div>
 
-                <p class="mt-6 text-sm font-black text-emerald-400">
+
+                <p
+                    class="
+                        mt-6
+                        text-sm
+                        font-black
+                        text-emerald-400
+                    "
+                >
                     رزرو با موفقیت ثبت شد
                 </p>
+
 
                 <h1
                     class="
@@ -49,13 +70,16 @@
                     نوبتت با موفقیت ثبت شد 🎉
                 </h1>
 
+
                 <p
                     class="
                         mx-auto
                         mt-4
                         max-w-2xl
+                        text-sm
                         leading-8
                         text-muted
+                        sm:text-base
                     "
                 >
                     درخواست نوبت شما برای آرایشگاه ثبت شده است.
@@ -71,7 +95,7 @@
 
             <div
                 class="
-                    mt-12
+                    mt-10
                     overflow-hidden
                     rounded-[32px]
                     border
@@ -79,6 +103,7 @@
                     bg-surface
                     shadow-xl
                     shadow-black/5
+                    sm:mt-12
                 "
             >
 
@@ -89,7 +114,7 @@
                         border-b
                         border-border
                         bg-primary/5
-                        p-6
+                        p-5
                         sm:p-8
                     "
                 >
@@ -105,15 +130,17 @@
                         "
                     >
 
-                        <div>
+                        <div class="min-w-0">
 
                             <p class="text-sm font-bold text-primary">
                                 رزرو در
                             </p>
 
+
                             <h2
                                 class="
                                     mt-2
+                                    truncate
                                     text-2xl
                                     font-black
                                     text-text
@@ -129,6 +156,7 @@
                             class="
                                 inline-flex
                                 w-fit
+                                shrink-0
                                 items-center
                                 gap-2
                                 rounded-full
@@ -142,7 +170,12 @@
                         >
 
                             <span
-                                class="h-2.5 w-2.5 rounded-full bg-amber-400"
+                                class="
+                                    h-2.5
+                                    w-2.5
+                                    rounded-full
+                                    bg-amber-400
+                                "
                             ></span>
 
                             در انتظار تأیید
@@ -156,7 +189,7 @@
 
                 {{-- Booking Details --}}
 
-                <div class="p-6 sm:p-8">
+                <div class="p-5 sm:p-8">
 
                     <div class="grid gap-4 sm:grid-cols-2">
 
@@ -167,50 +200,74 @@
                             class="
                                 rounded-2xl
                                 border
-                                border-border
-                                bg-background
+                                border-primary/20
+                                bg-primary/5
                                 p-5
+                                sm:col-span-2
                             "
                         >
 
-                            <p class="text-sm text-muted">
-                                کد پیگیری
-                            </p>
-                            <a
-                                href="{{ route('booking.track.form', [
-        'reference' => $booking->reference_code,
-    ]) }}"
+                            <div
                                 class="
-        inline-flex
-        items-center
-        justify-center
-        gap-2
-        rounded-xl
-        bg-primary
-        px-5
-        py-3
-        text-sm
-        font-black
-        text-white
-        transition
-        hover:bg-primary-hover
-    "
-                            >
-                                <x-lucide-search-check class="h-4 w-4" />
-
-                                پیگیری نوبت
-                            </a>
-                            <p
-                                class="
-                                    mt-2
-                                    break-all
-                                    font-black
-                                    tracking-wide
-                                    text-primary
+                                    flex
+                                    flex-col
+                                    gap-4
+                                    sm:flex-row
+                                    sm:items-center
+                                    sm:justify-between
                                 "
                             >
-                                {{ $booking->reference_code }}
-                            </p>
+
+                                <div>
+
+                                    <p class="text-sm text-muted">
+                                        کد پیگیری
+                                    </p>
+
+                                    <p
+                                        class="
+                                            mt-2
+                                            break-all
+                                            text-xl
+                                            font-black
+                                            tracking-wide
+                                            text-primary
+                                        "
+                                    >
+                                        {{ $booking->reference_code }}
+                                    </p>
+
+                                </div>
+
+
+                                <a
+                                    href="{{ route('booking.track.form') }}"
+                                    class="
+                                        inline-flex
+                                        w-full
+                                        items-center
+                                        justify-center
+                                        gap-2
+                                        rounded-xl
+                                        bg-primary
+                                        px-5
+                                        py-3
+                                        text-sm
+                                        font-black
+                                        text-white
+                                        transition
+                                        hover:bg-primary-hover
+                                        sm:w-auto
+                                    "
+                                >
+
+                                    <x-lucide-search-check class="h-4 w-4" />
+
+                                    پیگیری نوبت
+
+                                </a>
+
+                            </div>
 
                         </div>
 
@@ -255,7 +312,21 @@
                             </p>
 
                             <p class="mt-2 font-black text-text">
-                                {{ $booking->booking_date }}
+
+                                @php
+                                    $jalaliBookingDate = null;
+
+                                    try {
+                                        $jalaliBookingDate = \Morilog\Jalali\Jalalian::fromCarbon(
+                                            \Carbon\Carbon::parse($booking->booking_date)
+                                        )->format('Y/m/d');
+                                    } catch (\Throwable) {
+                                        $jalaliBookingDate = $booking->booking_date;
+                                    }
+                                @endphp
+
+                                {{ $jalaliBookingDate }}
+
                             </p>
 
                         </div>
@@ -277,8 +348,15 @@
                                 ساعت
                             </p>
 
-                            <p class="mt-2 font-black text-text" dir="ltr">
-                                {{ $booking->booking_time }}
+                            <p
+                                class="
+                                    mt-2
+                                    font-black
+                                    text-text
+                                "
+                                dir="ltr"
+                            >
+                                {{ substr((string) $booking->booking_time, 0, 5) }}
                             </p>
 
                         </div>
@@ -324,11 +402,13 @@
                             </p>
 
                             <p class="mt-2 font-black text-primary">
-                                {{ number_format($booking->final_price) }}
+
+                                {{ number_format((float) $booking->final_price) }}
 
                                 <span class="text-xs">
                                     تومان
                                 </span>
+
                             </p>
 
                         </div>
@@ -352,6 +432,7 @@
                         <p class="text-sm font-bold text-primary">
                             اطلاعات مشتری
                         </p>
+
 
                         <div
                             class="
@@ -414,7 +495,14 @@
                                 توضیحات شما
                             </p>
 
-                            <p class="mt-3 leading-7 text-muted">
+                            <p
+                                class="
+                                    mt-3
+                                    text-sm
+                                    leading-7
+                                    text-muted
+                                "
+                            >
                                 {{ $booking->customer_note }}
                             </p>
 
@@ -436,11 +524,33 @@
                         "
                     >
 
-                        <div class="flex items-start gap-3">
+                        <div
+                            class="
+                                flex
+                                items-start
+                                gap-3
+                            "
+                        >
 
-                            <div class="text-xl">
-                                ℹ️
+                            <div
+                                class="
+                                    flex
+                                    h-9
+                                    w-9
+                                    shrink-0
+                                    items-center
+                                    justify-center
+                                    rounded-xl
+                                    bg-amber-500/10
+                                "
+                            >
+
+                                <x-lucide-info
+                                    class="h-4 w-4 text-amber-400"
+                                />
+
                             </div>
+
 
                             <div>
 
@@ -448,7 +558,14 @@
                                     درخواست شما ثبت شد
                                 </p>
 
-                                <p class="mt-2 text-sm leading-7 text-muted">
+                                <p
+                                    class="
+                                        mt-2
+                                        text-sm
+                                        leading-7
+                                        text-muted
+                                    "
+                                >
                                     وضعیت این رزرو در حال حاضر
                                     «در انتظار تأیید» است.
                                     لطفاً کد پیگیری خود را نزد خود نگه دارید.
@@ -474,9 +591,12 @@
                     >
 
                         <a
-                            href="{{ route('salon.public', ['salon' => $salon->slug]) }}"
+                            href="{{ route('salon.public', [
+                                'salon' => $salon->slug,
+                            ]) }}"
                             class="
                                 inline-flex
+                                w-full
                                 items-center
                                 justify-center
                                 rounded-2xl
@@ -487,6 +607,7 @@
                                 text-white
                                 transition
                                 hover:bg-primary-hover
+                                sm:w-auto
                             "
                         >
                             بازگشت به صفحه سالن
@@ -494,9 +615,12 @@
 
 
                         <a
-                            href="{{ route('salon.booking.create', ['qr_token' => $salon->qr_token]) }}"
+                            href="{{ route('salon.booking.create', [
+                                'salon' => $salon->slug,
+                            ]) }}"
                             class="
                                 inline-flex
+                                w-full
                                 items-center
                                 justify-center
                                 rounded-2xl
@@ -510,6 +634,7 @@
                                 transition
                                 hover:border-primary
                                 hover:text-primary
+                                sm:w-auto
                             "
                         >
                             رزرو نوبت دیگر

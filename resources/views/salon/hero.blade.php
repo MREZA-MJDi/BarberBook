@@ -2,10 +2,6 @@
     $publicUrl = route('salon.public', [
         'salon' => $salon->slug,
     ]);
-
-    $bookingUrl = route('salon.booking.create', [
-        'salon' => $salon->slug,
-    ]);
 @endphp
 
 
@@ -267,8 +263,10 @@
                 "
             >
 
+                {{-- Booking --}}
+
                 <a
-                    href="{{ $bookingUrl }}#booking"
+                    href="#booking"
                     class="
                         inline-flex
                         items-center
@@ -297,6 +295,8 @@
 
                 </a>
 
+
+                {{-- Phone --}}
 
                 @if($salon?->phone)
 
@@ -330,24 +330,6 @@
                     </a>
 
                 @endif
-
-            </div>
-
-
-            {{-- Salon URL --}}
-
-            <div class="mt-6">
-
-                <span
-                    class="
-                        text-[10px]
-                        font-bold
-                        tracking-wide
-                        text-white/40
-                    "
-                >
-                    {{ $publicUrl }}
-                </span>
 
             </div>
 

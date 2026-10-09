@@ -1,93 +1,48 @@
 # BarberBook
 
-**BarberBook** is a web-based booking platform designed to manage barber services and appointment scheduling.
+BarberBook is a Laravel-based appointment-booking application focused on barbershops. The codebase includes booking-oriented application structure and uses QR-code generation and Jalali date support. Check the current routes and tests for the exact workflows available in the checked-out version.
 
-## Overview
+## Dedicated dashboard
+BarberBook includes its own dedicated dashboard for the barbershop appointment product, separate from the public-facing experience. Refer to the current routes and tests for the precise operations available in this version.
 
-The project focuses on simplifying appointment management by providing a structured system for customers, services, and bookings.
+## Stack
+- PHP `^8.2`, Laravel `^12.0`
+- Blade and Vite-based frontend assets
+- Database configured through Laravel's `.env`
+- QR code generation: `chillerlan/php-qrcode`
+- Jalali dates: `morilog/jalali`
+- PHPUnit-based tests
 
-## Features
+## Requirements
+PHP 8.2+, Composer, Node.js/npm, and MySQL/MariaDB or another Laravel-supported database.
 
-* User authentication
-* Barber/service management
-* Appointment booking
-* Booking management
-* Database-driven application
-* Server-side validation
-* Responsive user interface
-* MVC-based architecture
-
-## Technology Stack
-
-* **Backend:** PHP, Laravel
-* **Frontend:** HTML, CSS, JavaScript
-* **Database:** MySQL
-* **Architecture:** MVC
-
-## Installation
-
-Clone the repository:
-
+## Install locally
 ```bash
 git clone https://github.com/MREZA-MJDi/BarberBook.git
 cd BarberBook
-```
-
-Install dependencies:
-
-```bash
 composer install
 ```
 
-Create the environment file:
-
-```bash
-cp .env.example .env
-```
-
-Generate the application key:
+Copy `.env.example` to `.env` (`copy .env.example .env` in Windows CMD; `cp .env.example .env` on macOS/Linux). Create a local database and set `DB_*` values in `.env`.
 
 ```bash
 php artisan key:generate
-```
-
-Configure the database in `.env`.
-
-Run migrations:
-
-```bash
 php artisan migrate
-```
-
-Start the application:
-
-```bash
+npm install
+npm run build
 php artisan serve
 ```
 
-## Architecture
+Visit `http://127.0.0.1:8000` unless Artisan reports a different address. During frontend work, use `npm run dev` in another terminal.
 
-The application follows the MVC pattern provided by Laravel.
+## Run tests
+```bash
+php artisan test
+```
 
-The main application layers include:
+## Important
+No production credentials or default administrator password should be inferred from this documentation. Inspect available seeders and environment configuration before attempting to create demo data. Do not run destructive database reset commands on a database you need to preserve.
 
-* Models
-* Controllers
-* Views
-* Routes
-* Database migrations
-* Validation
-
-This structure keeps business logic organized and makes the application easier to maintain and extend.
-
-## Development Focus
-
-BarberBook was developed as a practical project for implementing real-world booking workflows, database relationships, validation, and server-side application logic.
-
-## Author
-
-**Mohammad Reza Majidi**
-
-Full-Stack Web Developer
-
-GitHub: [MREZA-MJDi](https://github.com/MREZA-MJDi)
+## Links
+- Repository: https://github.com/MREZA-MJDi/BarberBook
+- Laravel documentation: https://laravel.com/docs/12.x

@@ -2,6 +2,9 @@
 
 BarberBook is a Laravel-based appointment-booking application focused on barbershops. The codebase includes booking-oriented application structure and uses QR-code generation and Jalali date support. Check the current routes and tests for the exact workflows available in the checked-out version.
 
+## Dedicated dashboard
+BarberBook includes its own dedicated dashboard for the barbershop appointment product, separate from the public-facing experience. Refer to the current routes and tests for the precise operations available in this version.
+
 ## Stack
 - PHP `^8.2`, Laravel `^12.0`
 - Blade and Vite-based frontend assets
